@@ -518,8 +518,7 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
   </ul>
 </div></div>
 
-<!-- 数据快照双源：优先 Gitee 国内 raw（每日自动 push，境内加载快）；失败时回退同仓相对路径 -->
-<script src="https://gitee.com/whosblue/ads_analysis_dashboard/raw/main/data/ads_real.js" onerror="document.write('<script src=\'data/ads_real.js\'><\\/script>')"></script>
+<script src="data/ads_real.js"></script><!-- 共享版数据源=GitHub Pages 同仓快照（每日 sync 自动 push）；Gitee raw 因 text/plain+nosniff 被浏览器拒执行，实测不可用 -->
 <script>
 "use strict";
 /* ================= 工具 ================= */
