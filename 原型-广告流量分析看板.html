@@ -393,9 +393,6 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
     <div class="ptitle"><h2>◎ 国家维度</h2>
       <span style="margin-left:auto;display:flex;gap:8px;align-items:center;font-weight:400">
         <span class="dd" id="ddCountry"><button id="ddCountryBtn">默认花费 Top5</button><div class="dd-panel" id="ddCountryPanel"></div></span></span></div>
-    <div class="card"><div class="card-h"><span>花费 &amp; ROAS 趋势（按国家）</span>
-      <span class="seg mini" data-gran><button data-g="day" class="on">按日</button><button data-g="month">按月</button><button data-g="year">按年</button></span></div>
-      <div class="card-b"><div class="chart" id="chart5"></div></div></div>
     <div class="card"><div class="card-h">国家对比明细
       <button class="btn xs" data-export="m5">⇩ 导出</button></div>
       <div class="card-b tbl-scroll" id="m5Wrap"></div></div>
@@ -403,9 +400,6 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
 
   <section class="panel" id="m6">
     <div class="ptitle"><h2>◎ 年龄维度</h2></div>
-    <div class="card"><div class="card-h"><span>花费 &amp; ROAS 趋势（按年龄段）</span>
-      <span class="seg mini" data-gran><button data-g="day" class="on">按日</button><button data-g="month">按月</button><button data-g="year">按年</button></span></div>
-      <div class="card-b"><div class="chart" id="chart6"></div></div></div>
     <div class="card"><div class="card-h">年龄段明细
       <button class="btn xs" data-export="m6">⇩ 导出</button></div>
       <div class="card-b tbl-scroll" id="m6Wrap"></div></div>
@@ -464,9 +458,6 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
     <div class="ptitle"><h2>◎ 国家维度（Google）</h2>
       <span style="margin-left:auto;display:flex;gap:8px;align-items:center;font-weight:400">
         <span class="dd" id="ddGCty"><button id="ddGCtyBtn">默认花费 Top5</button><div class="dd-panel" id="ddGCtyPanel"></div></span></span></div>
-    <div class="card"><div class="card-h"><span>花费 &amp; ROAS 趋势（按国家）</span>
-      <span class="seg mini" data-gran><button data-g="day" class="on">按日</button><button data-g="month">按月</button><button data-g="year">按年</button></span></div>
-      <div class="card-b"><div class="chart" id="chartG2t"></div></div></div>
     <div class="card"><div class="card-h">国家对比明细
       <button class="btn xs" data-export="g2">⇩ 导出</button></div>
       <div class="card-b tbl-scroll" id="g2Wrap"></div></div>
@@ -474,9 +465,6 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
 
   <section class="panel" id="gm6">
     <div class="ptitle"><h2>◎ 年龄维度</h2></div>
-    <div class="card"><div class="card-h"><span>花费 &amp; ROAS 趋势（按年龄段）</span>
-      <span class="seg mini" data-gran><button data-g="day" class="on">按日</button><button data-g="month">按月</button><button data-g="year">按年</button></span></div>
-      <div class="card-b"><div class="chart" id="chartGm6"></div></div></div>
     <div class="card"><div class="card-h">年龄段明细
       <button class="btn xs" data-export="gm6">⇩ 导出</button></div>
       <div class="card-b tbl-scroll" id="gm6Wrap"></div></div>
@@ -774,8 +762,8 @@ function bucketAgg(valFn,g){var seen=[],o={};DATES.forEach(function(d){if(d<stat
   if(!o[k]){o[k]=zero();seen.push(k)}var v=valFn(d);if(v)addM(o[k],v)});
  return{keys:seen,rows:seen.map(function(k){return o[k]})}}
 /* 图表 id → 对应渲染函数（粒度切换时仅重渲染当前模块） */
-var GRAN_RENDER={chart1:renderM1,chart5:renderM5,chart6:renderM6,
- chartOvT:renderOvT,chartGm1:renderGm1,chartG2t:renderG2,chartGm6:renderGm6}
+var GRAN_RENDER={chart1:renderM1,
+ chartOvT:renderOvT,chartGm1:renderGm1}
 /* 多对象趋势图：每个对象一条 ROAS 折线（颜色与对应柱一致，虚线区分；线与柱同名不进图例，
    图例点击柱时同名线随 ECharts 原生联动显隐）o={names,colors,map,order,tag?,g?}；g=true 时分子取 Shopify 归因(vs)，否则取转化价值(value) */
 function objLines(o){return o.names.map(function(nm,i){
@@ -1295,15 +1283,8 @@ function renderM5(){
  var tset=keys;/* 总计=实际展示的国家集合（手动筛选=选中集合；默认=Top5），与行数据口径一致避免误导 */
  regTable('m5','国家对比明细','国家',rows,{dayFn:function(r,d){return aggDimDate(d,'country')[r.label]||zero()},
  totalRows:tset.map(function(k){return{label:k,m:cAgg[k]||zero()}})});
- var bk={},order=[];
- DATES.forEach(function(d){if(d<state.start||d>state.end)return;var k=bucketKey(d,chartGran('chart5'));
-  if(!bk[k]){bk[k]={};order.push(k)}var od=aggDimDate(d,'country');
-  keys.forEach(function(ct){bk[k][ct]=bk[k][ct]||zero();if(od[ct])addM(bk[k][ct],od[ct])})});
- var colors=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444'];
- var series=keys.map(function(ct,i){return{name:ct,type:'bar',stack:'cty',barMaxWidth:30,itemStyle:{color:colors[i%5]},
-  data:order.map(function(k){return +bk[k][ct].spend.toFixed(2)})}});
- var tot={keys:order,rows:order.map(function(k){var m=zero();keys.forEach(function(ct){addM(m,bk[k][ct])});return m})};
- var c=chart('chart5');if(c)c.setOption(trendOption(tot,series,{names:keys,colors:colors,map:bk,order:order}),true);
+/* 趋势图已于 2026-11-04 按用户定版移除（明细表为主），交互机制 trendOption/objLines 保留 */
+
  ctyTop5=top.slice(0,5);ctyShown=keys.slice();if(ctyDD)ctyDD.sync()}/* 空态文本跟随最新 Top5（日期/站点变化后同步） */
 /* ================= Meta · 年龄维度 ================= */
 function renderM6(){
@@ -1311,15 +1292,9 @@ function renderM6(){
  var rows=AGES.map(function(k){return{label:k,m:aAgg[k]||zero()}});
  withCmps(rows,function(r,i,rg){var o=aggDimRange(rg.start,rg.end,'age');return o[r.label]||zero()});
  regTable('m6','年龄段明细','年龄段',rows,{sortCol:null,dayFn:function(r,d){return aggDimDate(d,'age')[r.label]||zero()}});
- var bk={},order=[];
- DATES.forEach(function(d){if(d<state.start||d>state.end)return;var k=bucketKey(d,chartGran('chart6'));
-  if(!bk[k]){bk[k]={};order.push(k)}var od=aggDimDate(d,'age');
-  AGES.forEach(function(ag){bk[k][ag]=bk[k][ag]||zero();if(od[ag])addM(bk[k][ag],od[ag])})});
- var colors=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#14b8a6'];
- var series=AGES.map(function(ag,i){return{name:ag,type:'bar',stack:'age',barMaxWidth:30,itemStyle:{color:colors[i%6]},
-  data:order.map(function(k){return +bk[k][ag].spend.toFixed(2)})}});
- var tot={keys:order,rows:order.map(function(k){var m=zero();AGES.forEach(function(ag){addM(m,bk[k][ag])});return m})};
- var c=chart('chart6');if(c)c.setOption(trendOption(tot,series,{names:AGES,colors:colors,map:bk,order:order}),true)}
+/* 趋势图已于 2026-11-04 按用户定版移除（明细表为主），交互机制 trendOption/objLines 保留 */
+}
+
 /* ================= Google · 广告类型分析（双口径） ================= */
 function aggBrand(src,b){var m={spend:0,impressions:0,clicks:0,orders:0,vs:0,va:0};
  Object.keys(src).forEach(function(k){if(k.split('|')[1]===b){var s=src[k];
@@ -1362,23 +1337,8 @@ function renderG2(){
   .sort(function(x,y){return y.m.spend-x.m.spend});
  withCmps(rows,function(r,i,rg){return gCtyRange(r.label,rg.start,rg.end)});
  regTable('g2','Google × 国家','国家',rows,{mode:'g',cols:G_CMP_COLS,dayFn:function(r,d){return gCtyRange(r.label,d,d)}});/* 总计=展示集合；国家名纯文本展示（2026-11-04 用户定版：去除下划线与点击切换交互） */
- var sk=keys;/* 趋势图与明细同集合（默认 Top5），点击国家改筛选后联动 */
- var bk={},order=[];
- DATES.forEach(function(d){if(d<state.start||d>state.end)return;var k=bucketKey(d,chartGran('chartG2t'));
-  if(!bk[k]){bk[k]={};order.push(k)}sk.forEach(function(ct){bk[k][ct]=bk[k][ct]||zero();addM(bk[k][ct],gCtyDate(ct,d))})});
- var colors=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#14b8a6'];
- var series=sk.map(function(ct,i){return{name:ct,type:'bar',stack:'gcty',barMaxWidth:30,itemStyle:{color:colors[i%6]},
-  data:order.map(function(k){return +bk[k][ct].spend.toFixed(2)})}});
- var c=chart('chartG2t');
- /* 细分模块多对象图不画双口径总线，只保留各对象 ROAS 线 */
- var gLines=objLines({names:sk,colors:colors,map:bk,order:order,g:true});
- if(c)c.setOption({tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:dualTip},
-  legend:{top:2,type:'scroll',data:sk.slice()},
-  grid:{left:56,right:56,top:36,bottom:28},
-  xAxis:{type:'category',data:order},
-  yAxis:[{type:'value',name:'花费($)',splitLine:{lineStyle:{color:'#eef1f6'}}},
-         {type:'value',name:'ROAS',position:'right',splitLine:{show:false}}],
-  series:series.concat(gLines)},true);
+/* 趋势图已于 2026-11-04 按用户定版移除（明细表为主），交互机制 trendOption/objLines 保留 */
+
  gCtyTop5=top.slice(0,5).map(function(r){return r.ct});gCtyShown=keys.slice();if(gCtyDD)gCtyDD.sync()}/* 空态文案跟随最新 Top5（日期/站点变化后同步） */
 /* ================= Google · 大盘健康度 / 账号定位 / 商品投产 / 年龄维度 ================= */
 function gTotRange(s,e){var m={spend:0,impressions:0,clicks:0,orders:0,vs:0,va:0};
@@ -1447,15 +1407,9 @@ function renderGm6(){
  var rows=AGES.map(function(ag){return{label:ag,m:gSplitRange(gAgeDate,ag,state.start,state.end)}});
  withCmps(rows,function(r,i,rg){return gSplitRange(gAgeDate,r.label,rg.start,rg.end)});
  regTable('gm6','年龄段明细','年龄段',rows,{mode:'g',cols:G_AGE_COLS,sortCol:null,dayFn:function(r,d){return gSplitRange(gAgeDate,r.label,d,d)}});
- var bk={},order=[];
- DATES.forEach(function(d){if(d<state.start||d>state.end)return;var k=bucketKey(d,chartGran('chartGm6'));
-  if(!bk[k]){bk[k]={};order.push(k)}AGES.forEach(function(ag){bk[k][ag]=bk[k][ag]||zero();addM(bk[k][ag],gAgeDate(ag,d))})});
- var colors=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#14b8a6'];
- var series=AGES.map(function(ag,i){return{name:ag,type:'bar',stack:'gage',barMaxWidth:30,itemStyle:{color:colors[i%6]},
-  data:order.map(function(k){return +bk[k][ag].spend.toFixed(2)})}});
- var tot={keys:order,rows:order.map(function(k){var m=zero();AGES.forEach(function(ag){addM(m,bk[k][ag])});return m})};
- var c=chart('chartGm6');
- if(c)c.setOption(gTrendOpt(tot,series,'ROAS(Shopify)',{names:AGES,colors:colors,map:bk,order:order,g:true}),true)}
+/* 趋势图已于 2026-11-04 按用户定版移除（明细表为主），交互机制 trendOption/objLines 保留 */
+}
+
 /* ================= 大盘 · 总览（整站/分渠道，值内联环比） ================= */
 function renderOv(){
  var rgs=state.cmpOn?cmpRanges():[],prev=rgs[0];
