@@ -247,7 +247,6 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
   <div class="ttl">广告流量分析看板</div>
   <div class="hright">
     <span class="badge"><i></i>数据更新：2026-10-23 09:00（T+1）</span>
-    <button class="btn" id="btnSync">手动更新数据</button>
     <button class="btn" id="btnCal">口径说明</button>
   </div>
 </header>
@@ -2004,21 +2003,8 @@ document.addEventListener('click',function(ev){
     if(api&&dd.classList.contains('open'))api.reset()}}
   else dd.classList.remove('open')})});
 I('btnCal').addEventListener('click',function(){I('calModal').classList.add('on')});
-/* 手动更新数据：经本地看板服务（serve_dashboard.py）触发同步脚本（与 launchd 05:00 定时同链路），
- 完成后重载页面读取新快照——badge 数据更新时间随新 genAt 自动刷新。
- 直接双击打开（file://）无法触发服务端同步，提示改用本地服务访问 */
-I('btnSync').addEventListener('click',function(){
- if(location.protocol==='file:'){
-  alert('直接打开文件模式无法触发数据更新。\n请改用本地服务访问看板：\npython3 tools/serve_dashboard.py');return}
- if(location.hostname!=='localhost'&&location.hostname!=='127.0.0.1'){
-  alert('当前为线上共享版：数据由数据源电脑每日 T+1 自动更新并重新发布，无需手动触发。\n手动更新仅限数据源电脑本地访问（localhost）时可用');return}
- var b=I('btnSync');if(b.disabled)return;
- b.disabled=true;b.textContent='更新中…（约1-2分钟）';
- fetch('/api/sync',{method:'POST'}).then(function(r){return r.json().then(function(j){return{code:r.status,j:j}})}).then(function(x){
-  if(x.j.ok){location.reload()}/* 重载后 badge/全部模块读取新快照 */
-  else{b.disabled=false;b.textContent='手动更新数据';alert('更新未完成：\n'+(x.j.error||('HTTP '+x.code)))}})
-  .catch(function(e){b.disabled=false;b.textContent='手动更新数据';
-   alert('更新请求失败（本地服务未启动？）：'+e+'\n请用 python3 tools/serve_dashboard.py 启动服务')})});
+/* 手动更新数据按钮已于 2026-11-04 移除（用户定版：保持 launchd 每日自动更新，无需手动触发）；
+   数据更新链路：launchd 05:00 → sync 脚本 → 双推 → GitHub Pages 自动重部署 */
 I('calClose').addEventListener('click',function(){I('calModal').classList.remove('on')});
 I('calModal').addEventListener('click',function(ev){if(ev.target===I('calModal'))I('calModal').classList.remove('on')});
 window.addEventListener('resize',function(){Object.keys(charts).forEach(function(k){charts[k].resize()})});
