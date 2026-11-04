@@ -342,10 +342,6 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
 
   <section class="panel" id="m2">
     <div class="ptitle"><h2>◎ 账号定位</h2></div>
-    <div class="card"><div class="card-h"><span>花费 &amp; ROAS（按账号）</span>
-      <span style="font-weight:400;color:var(--sub);font-size:11px">默认花费 Top5 账号，随账号筛选联动</span>
-      <span class="seg mini" data-gran><button data-g="day" class="on">按日</button><button data-g="month">按月</button><button data-g="year">按年</button></span></div>
-      <div class="card-b"><div class="chart" id="chart2t"></div></div></div>
     <div class="card"><div class="card-h">账号排行明细
       <button class="btn xs" data-export="m2a">⇩ 导出</button></div>
       <div class="card-b tbl-scroll" id="m2aWrap"></div></div>
@@ -781,7 +777,7 @@ function bucketAgg(valFn,g){var seen=[],o={};DATES.forEach(function(d){if(d<stat
   if(!o[k]){o[k]=zero();seen.push(k)}var v=valFn(d);if(v)addM(o[k],v)});
  return{keys:seen,rows:seen.map(function(k){return o[k]})}}
 /* 图表 id → 对应渲染函数（粒度切换时仅重渲染当前模块） */
-var GRAN_RENDER={chart1:renderM1,chart2t:renderAccTrend,chart3:renderM3,chart5:renderM5,chart6:renderM6,
+var GRAN_RENDER={chart1:renderM1,chart3:renderM3,chart5:renderM5,chart6:renderM6,
  chartOvT:renderOvT,chartGm1:renderGm1,chartG2t:renderG2,chartGm6:renderGm6}
 /* 多对象趋势图：每个对象一条 ROAS 折线（颜色与对应柱一致，虚线区分；线与柱同名不进图例，
    图例点击柱时同名线随 ECharts 原生联动显隐）o={names,colors,map,order,tag?,g?}；g=true 时分子取 Shopify 归因(vs)，否则取转化价值(value) */
@@ -1155,21 +1151,8 @@ function renderM2(){
   .sort(function(x,y){return cAgg[y].spend-cAgg[x].spend});
  var crows=ckeys.map(function(k){return{label:k,m:cAgg[k]}});
  withCmps(crows,function(r,i,rg){var o=aggDimRange(rg.start,rg.end,'campaign');return o[r.label]||zero()});
- regTable('m2b','Campaign 明细','Campaign 名称',crows,{dayFn:function(r,d){return aggDimDate(d,'campaign')[r.label]||zero()}});
- renderAccTrend()}
-function renderAccTrend(){
- var cur=ACCOUNTS.filter(accOK),spends={};
- cur.forEach(function(a){spends[a]=aggOneAcc(a,state.start,state.end).spend});
- var accs=metaSel.length?metaSel.slice():cur.slice().sort(function(x,y){return spends[y]-spends[x]}).slice(0,5);
- var bk={},order=[];
- DATES.forEach(function(d){if(d<state.start||d>state.end)return;var k=bucketKey(d,chartGran('chart2t'));
-  if(!bk[k]){bk[k]={};order.push(k)}
-  accs.forEach(function(a){bk[k][a]=bk[k][a]||zero();addM(bk[k][a],factScaled(a,d))})});
- var colors=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444'];
- var series=accs.map(function(a,i){return{name:a,type:'bar',stack:'acc',barMaxWidth:30,itemStyle:{color:colors[i%5],borderRadius:[3,3,0,0]},
-  data:order.map(function(k){return +bk[k][a].spend.toFixed(2)})}});
- var tot={keys:order,rows:order.map(function(k){var m=zero();accs.forEach(function(a){addM(m,bk[k][a])});return m})};
- var c=chart('chart2t');if(c)c.setOption(trendOption(tot,series,{names:accs,colors:colors,map:bk,order:order}),true)}
+ regTable('m2b','Campaign 明细','Campaign 名称',crows,{dayFn:function(r,d){return aggDimDate(d,'campaign')[r.label]||zero()}})}
+/* 花费&ROAS（按账号）趋势图已于 2026-11-04 按用户定版移除：账号定位模块仅保留账号排行明细与 Campaign 明细两张表 */
 /* ================= Meta · 商品投产 ================= */
 var spuSel=[],spuChartSel=[];
 /* SPU 筛选候选联动：仅展示当前销售站点(数据桶维)与广告账号(RD.spuAccs)范围内有数据的 SPU；演示模式返回全量 */
