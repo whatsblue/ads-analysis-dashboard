@@ -323,7 +323,7 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
     </div>
     <div class="card"><div class="card-h">渠道对比明细
       <button class="btn xs" data-export="ca">⇩ 导出</button></div>
-      <div class="card-b" id="caWrap"></div></div>
+      <div class="card-b tbl-scroll" id="caWrap"></div></div>
   </section>
 
   <!-- Meta -->
@@ -335,7 +335,7 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
       <div class="card-b"><div class="chart" id="chart1"></div></div></div>
     <div class="card"><div class="card-h">大盘明细
       <button class="btn xs" data-export="m1">⇩ 导出</button></div>
-      <div class="card-b" id="m1Wrap"></div></div>
+      <div class="card-b tbl-scroll" id="m1Wrap"></div></div>
   </section>
 
   <section class="panel" id="m2">
@@ -346,7 +346,7 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
       <div class="card-b"><div class="chart" id="chart2t"></div></div></div>
     <div class="card"><div class="card-h">账号排行明细
       <button class="btn xs" data-export="m2a">⇩ 导出</button></div>
-      <div class="card-b" id="m2aWrap"></div></div>
+      <div class="card-b tbl-scroll" id="m2aWrap"></div></div>
     <div class="card"><div class="card-h">Campaign 明细
       <span style="margin-left:auto;display:flex;gap:8px;align-items:center;font-weight:400">
         <div class="fd dd" id="ddCmp"><b>广告系列</b><button id="ddCmpBtn">全部广告系列</button><div class="dd-panel" id="ddCmpPanel"></div></div></span>
@@ -377,11 +377,11 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
     </div>
     <div class="card"><div class="card-h">素材类型明细<span style="font-weight:400;color:var(--sub);font-size:11px;margin-left:8px">点击「素材类型」名称下钻查看该类型 Top 素材</span>
       <button class="btn xs" data-export="m4a">⇩ 导出</button></div>
-      <div class="card-b" id="m4aWrap"></div></div>
+      <div class="card-b tbl-scroll" id="m4aWrap"></div></div>
 <div class="card"><div class="card-h">素材子分类明细
       <span class="seg mini" id="m4SubTabs" style="margin-left:12px"><button data-st="kol" class="on">红人素材</button><button data-st="xsp">视频广告</button><button data-st="xph">图片广告</button></span>
       <button class="btn xs" data-export="m4sub" style="margin-left:auto">⇩ 导出</button></div>
-      <div class="card-b" id="m4subWrap"></div></div>
+      <div class="card-b tbl-scroll" id="m4subWrap"></div></div>
     </div>
     <div id="m4Drill" class="hidden">
     <div class="card"><div class="card-h"><button class="btn xs" id="btnM4Back">← 返回素材类型明细</button><span id="m4DrillName" style="margin-left:10px;font-weight:700"></span>
@@ -403,7 +403,7 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
       <div class="card-b"><div class="chart" id="chart5"></div></div></div>
     <div class="card"><div class="card-h">国家对比明细
       <button class="btn xs" data-export="m5">⇩ 导出</button></div>
-      <div class="card-b" id="m5Wrap"></div></div>
+      <div class="card-b tbl-scroll" id="m5Wrap"></div></div>
   </section>
 
   <section class="panel" id="m6">
@@ -413,7 +413,7 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
       <div class="card-b"><div class="chart" id="chart6"></div></div></div>
     <div class="card"><div class="card-h">年龄段明细
       <button class="btn xs" data-export="m6">⇩ 导出</button></div>
-      <div class="card-b" id="m6Wrap"></div></div>
+      <div class="card-b tbl-scroll" id="m6Wrap"></div></div>
   </section>
 
   <!-- Google -->
@@ -426,19 +426,19 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
       <div class="card-b"><div class="chart" id="chartGm1"></div></div></div>
     <div class="card"><div class="card-h">大盘明细
       <button class="btn xs" data-export="gm1">⇩ 导出</button></div>
-      <div class="card-b" id="gm1Wrap"></div></div>
+      <div class="card-b tbl-scroll" id="gm1Wrap"></div></div>
   </section>
 
   <section class="panel" id="gm2">
     <div class="ptitle"><h2>◎ 账号定位</h2></div>
     <div class="card"><div class="card-h">账号排行明细
       <button class="btn xs" data-export="gm2">⇩ 导出</button></div>
-      <div class="card-b" id="gm2Wrap"></div></div>
+      <div class="card-b tbl-scroll" id="gm2Wrap"></div></div>
     <div class="card"><div class="card-h">Campaign 明细
       <span style="margin-left:auto;display:flex;gap:8px;align-items:center;font-weight:400">
 <div class="fd dd" id="ddGCmp"><b>广告系列</b><button id="ddGCmpBtn">全部广告系列</button><div class="dd-panel" id="ddGCmpPanel"></div></div></span>
       <button class="btn xs" data-export="gmc">⇩ 导出</button></div>
-      <div class="card-b" id="gmcWrap"></div></div>
+      <div class="card-b tbl-scroll" id="gmcWrap"></div></div>
   </section>
 
   <section class="panel" id="gm3">
@@ -459,10 +459,10 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
     </div>
     <div class="card"><div class="card-h">广告类型明细
       <button class="btn xs" data-export="g1">⇩ 导出</button></div>
-      <div class="card-b" id="g1Wrap"></div></div>
+      <div class="card-b tbl-scroll" id="g1Wrap"></div></div>
     <div class="card"><div class="card-h">广告类型明细 · 是否品牌词
       <button class="btn xs" data-export="g1b">⇩ 导出</button></div>
-      <div class="card-b" id="g1bWrap"></div></div>
+      <div class="card-b tbl-scroll" id="g1bWrap"></div></div>
   </section>
 
   <section class="panel" id="g2">
@@ -474,7 +474,7 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
       <div class="card-b"><div class="chart" id="chartG2t"></div></div></div>
     <div class="card"><div class="card-h">国家对比明细
       <button class="btn xs" data-export="g2">⇩ 导出</button></div>
-      <div class="card-b" id="g2Wrap"></div></div>
+      <div class="card-b tbl-scroll" id="g2Wrap"></div></div>
   </section>
 
   <section class="panel" id="gm6">
@@ -484,7 +484,7 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
       <div class="card-b"><div class="chart" id="chartGm6"></div></div></div>
     <div class="card"><div class="card-h">年龄段明细
       <button class="btn xs" data-export="gm6">⇩ 导出</button></div>
-      <div class="card-b" id="gm6Wrap"></div></div>
+      <div class="card-b tbl-scroll" id="gm6Wrap"></div></div>
   </section>
 </main>
 
