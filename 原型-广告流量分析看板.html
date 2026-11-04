@@ -1188,7 +1188,8 @@ function renderM3(){
   if(_keep.length!==spuSel.length){spuSel.length=0;Array.prototype.push.apply(spuSel,_keep);if(spuDD)spuDD.sync()}}
  var a=aggDimRange(state.start,state.end,'spu');
  var top=Object.keys(a).filter(function(k){return a[k].spend>0}).sort(function(x,y){return a[y].spend-a[x].spend});
- var keys=(pickKeys(spuSel,ddExcl.spu,SPUS)||top.slice(0,10))
+ /* 全量 SPU 进表（不预设截断）：初始 limit=10 显示花费 Top10，超出行由「加载更多」一键展开（同 Campaign 明细）；有 SPU 筛选时显示所选项 */
+ var keys=(pickKeys(spuSel,ddExcl.spu,SPUS)||top)
   .slice().sort(function(x,y){return (a[y]?a[y].spend:0)-(a[x]?a[x].spend:0)});
  var rows=keys.map(function(k){return{label:k,m:a[k]||zero()}});
  withCmps(rows,function(r,i,rg){var o=aggDimRange(rg.start,rg.end,'spu');return o[r.label]||zero()});
