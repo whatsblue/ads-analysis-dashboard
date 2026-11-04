@@ -239,6 +239,11 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
 .cmpo-opt input{accent-color:var(--pri);margin:0}
 .cmpo-opt input:checked+span{color:var(--pri);font-weight:700}
 .cmpo-tip{font-size:11px;color:var(--sub);padding-top:7px}
+/* 环比设置弹窗内日历改为文档流展开（2026-11-04 用户定版）：点开对比周期后弹窗自适应变长涵盖日历，
+   不再被 .modal 限高裁剪成弹窗内滚动；限高放宽至 92vh 兜底小屏（极端小视口仍可滚） */
+#cmpModal .modal{max-height:92vh}
+#cmpModal .prange .dd{position:static}
+#cmpModal .prange .dd-panel{position:static;max-height:none;overflow:visible;box-shadow:none}
 </style>
 </head>
 <body>
