@@ -356,9 +356,6 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
     <div class="ptitle"><h2>◎ 商品投产</h2>
       <span style="margin-left:auto;display:flex;gap:8px;align-items:center;font-weight:400">
         <span class="dd" id="ddSpu"><button id="ddSpuBtn">筛选 SPU（默认 Top10）</button><div class="dd-panel" id="ddSpuPanel"></div></span></span></div>
-    <div class="card"><div class="card-h"><span>花费 &amp; ROAS（按 SPU）</span>
-      <span class="seg mini" data-gran><button data-g="day" class="on">按日</button><button data-g="month">按月</button><button data-g="year">按年</button></span></div>
-      <div class="card-b"><div class="chart" id="chart3"></div></div></div>
     <div class="card"><div class="card-h">SPU 排行
       <button class="btn xs" data-export="m3">⇩ 导出</button></div>
       <div class="card-b tbl-scroll" id="m3Wrap"></div></div>
@@ -777,7 +774,7 @@ function bucketAgg(valFn,g){var seen=[],o={};DATES.forEach(function(d){if(d<stat
   if(!o[k]){o[k]=zero();seen.push(k)}var v=valFn(d);if(v)addM(o[k],v)});
  return{keys:seen,rows:seen.map(function(k){return o[k]})}}
 /* 图表 id → 对应渲染函数（粒度切换时仅重渲染当前模块） */
-var GRAN_RENDER={chart1:renderM1,chart3:renderM3,chart5:renderM5,chart6:renderM6,
+var GRAN_RENDER={chart1:renderM1,chart5:renderM5,chart6:renderM6,
  chartOvT:renderOvT,chartGm1:renderGm1,chartG2t:renderG2,chartGm6:renderGm6}
 /* 多对象趋势图：每个对象一条 ROAS 折线（颜色与对应柱一致，虚线区分；线与柱同名不进图例，
    图例点击柱时同名线随 ECharts 原生联动显隐）o={names,colors,map,order,tag?,g?}；g=true 时分子取 Shopify 归因(vs)，否则取转化价值(value) */
@@ -1154,7 +1151,7 @@ function renderM2(){
  regTable('m2b','Campaign 明细','Campaign 名称',crows,{dayFn:function(r,d){return aggDimDate(d,'campaign')[r.label]||zero()}})}
 /* 花费&ROAS（按账号）趋势图已于 2026-11-04 按用户定版移除：账号定位模块仅保留账号排行明细与 Campaign 明细两张表 */
 /* ================= Meta · 商品投产 ================= */
-var spuSel=[],spuChartSel=[];
+var spuSel=[];
 /* SPU 筛选候选联动：仅展示当前销售站点(数据桶维)与广告账号(RD.spuAccs)范围内有数据的 SPU；演示模式返回全量 */
 function spuCandidates(){
  if(!(window.RD&&window.RD.v))return SPUS.slice();
@@ -1182,16 +1179,9 @@ function renderM3(){
  regTable('m3','SPU 排行','SPU',rows,{dayFn:function(r,d){return aggDimDate(d,'spu')[r.label]||zero()},
  totalRows:tset.map(function(k){return{label:k,m:a[k]||zero()}}),
  tips:{clicks:'链接点击量：Meta 广告后台 inline_link_clicks（对齐观远商品投产口径）',cpc:'CPC＝花费÷链接点击量',ctr:'CTR＝链接点击量÷展示量'}});
- var chartSpus=pickKeys(spuSel,ddExcl.spu,SPUS)||top.slice(0,1);/* 默认仅展示筛选日期范围内花费 Top1 SPU */
- var bkMap={},order=[];
- DATES.forEach(function(d){if(d<state.start||d>state.end)return;var k=bucketKey(d,chartGran('chart3'));
-  if(!bkMap[k]){bkMap[k]={};order.push(k)}var od=aggDimDate(d,'spu');
-  chartSpus.forEach(function(s){bkMap[k][s]=bkMap[k][s]||zero();if(od[s])addM(bkMap[k][s],od[s])})});
- var colors=['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#14b8a6'];
- var series=chartSpus.map(function(s,i){return{name:s,type:'bar',barMaxWidth:26,itemStyle:{color:colors[i%6],borderRadius:[3,3,0,0]},
-  data:order.map(function(k){return +bkMap[k][s].spend.toFixed(2)})}});
- var tot={keys:order,rows:order.map(function(k){var m=zero();chartSpus.forEach(function(s){addM(m,bkMap[k][s])});return m})};
- var c=chart('chart3');if(c)c.setOption(trendOption(tot,series,{names:chartSpus,colors:colors,map:bkMap,order:order}),true)}
+
+/* 花费&ROAS（按 SPU）趋势图已于 2026-11-04 按用户定版移除：商品投产模块仅保留 SPU 排行明细表 */
+}
 /* ================= Meta · 素材效率 ================= */
 var typeSel=[];
 /* 素材过滤：普通模式=白名单（空=全部）；排除模式=去掉所选 */
