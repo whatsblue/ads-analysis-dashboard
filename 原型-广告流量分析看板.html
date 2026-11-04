@@ -316,6 +316,9 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
     <div class="card"><div class="card-h">大盘总览
       <button class="btn xs" id="btnOvExport">⇩ 导出</button></div>
       <div class="card-b" id="ovWrap"></div></div>
+    <div class="card"><div class="card-h"><span>花费 &amp; ROAS 趋势</span>
+      <span class="seg mini" data-gran><button data-g="day" class="on">按日</button><button data-g="month">按月</button><button data-g="year">按年</button></span></div>
+      <div class="card-b"><div class="chart" id="chartOvT"></div></div></div>
     <div class="two">
       <div class="card"><div class="card-h">渠道花费占比</div><div class="card-b"><div class="chart sm" id="chartCad1"></div></div></div>
       <div class="card"><div class="card-h">渠道 ROAS 对比</div><div class="card-b"><div class="chart sm" id="chartCad2"></div></div></div>
@@ -779,7 +782,7 @@ function bucketAgg(valFn,g){var seen=[],o={};DATES.forEach(function(d){if(d<stat
  return{keys:seen,rows:seen.map(function(k){return o[k]})}}
 /* 图表 id → 对应渲染函数（粒度切换时仅重渲染当前模块） */
 var GRAN_RENDER={chart1:renderM1,chart2t:renderAccTrend,chart3:renderM3,chart5:renderM5,chart6:renderM6,
- chartGm1:renderGm1,chartG2t:renderG2,chartGm6:renderGm6}
+ chartOvT:renderOvT,chartGm1:renderGm1,chartG2t:renderG2,chartGm6:renderGm6}
 /* 多对象趋势图：每个对象一条 ROAS 折线（颜色与对应柱一致，虚线区分；线与柱同名不进图例，
    图例点击柱时同名线随 ECharts 原生联动显隐）o={names,colors,map,order,tag?,g?}；g=true 时分子取 Shopify 归因(vs)，否则取转化价值(value) */
 function objLines(o){return o.names.map(function(nm,i){
@@ -1509,7 +1512,18 @@ function renderOv(){
   else h+='<td>—</td></tr>'});
  h+='</tbody></table>';
  I('ovWrap').innerHTML=h;
- renderCa()}
+ renderOvT();renderCa()}
+/* 大盘 · 花费&ROAS 趋势：Meta 与 Google 并排柱 + 各渠道 ROAS 虚线（转化价值口径，与大盘总览/渠道对比明细一致）；
+   颜色沿用同页签渠道图 CH_COLOR；粒度切换经 GRAN_RENDER.chartOvT，图例点击柱联动同名 ROAS 线显隐 */
+function renderOvT(){
+ var chs=['Meta','Google'],colors={Meta:'#5470c6',Google:'#91cc75'},bk={},order=[];
+ DATES.forEach(function(d){if(d<state.start||d>state.end)return;var k=bucketKey(d,chartGran('chartOvT'));
+  if(!bk[k]){bk[k]={};order.push(k)}
+  chs.forEach(function(c){bk[k][c]=bk[k][c]||zero();addM(bk[k][c],chDaily(c,d))})});
+ var series=chs.map(function(c){return{name:c,type:'bar',barMaxWidth:26,itemStyle:{color:colors[c],borderRadius:[3,3,0,0]},
+  data:order.map(function(k){return +bk[k][c].spend.toFixed(2)})}});
+ var tot={keys:order,rows:order.map(function(k){var m=zero();chs.forEach(function(c){addM(m,bk[k][c])});return m})};
+ var c=chart('chartOvT');if(c)c.setOption(trendOption(tot,series,{names:chs,colors:chs.map(function(c){return colors[c]}),map:bk,order:order}),true)}
 function ovExport(){
  var rgs=state.cmpOn?cmpRanges():[],prev=rgs[0];
  var cmp=I('expCmp').checked&&state.cmpOn&&!!prev;
@@ -1801,7 +1815,7 @@ function ovRows(cur){
 renderOv=function(){
  var cur=ovCalc(state.start,state.end);
  I('ovWrap').innerHTML=ovRows(cur);
- renderCa()};
+ renderOvT();renderCa()};
 ovExport=function(){
  var rgs=state.cmpOn?cmpRanges():[],prev=rgs[0];
  var cmp=I('expCmp').checked&&state.cmpOn&&!!prev;
