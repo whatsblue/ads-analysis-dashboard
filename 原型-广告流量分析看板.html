@@ -562,8 +562,8 @@ var METRIC_GROUPS=[
  {name:'流量效率',bg:'g1',cols:['cpm','cpc','ctr']},
  {name:'转化效果',bg:'g2',cols:['cvr','cpa_atc','cpa_ckt','cpa_ord']},
  {name:'投产回报',bg:'g3',cols:['roas','aov']}];
-var COL_NAME={spend:'花费',impressions:'展示',clicks:'点击',orders:'订单',value:'转化价值',cpm:'CPM',cpc:'CPC',ctr:'CTR',cvr:'CVR',cpa_atc:'单次加购',cpa_ckt:'单次结帐',cpa_ord:'单次购买',roas:'ROAS',aov:'客单价',spend_pct:'花费占比'};
-var COL_FMT={spend:fmtMoney,impressions:fmtInt,clicks:fmtInt,orders:fmtInt,value:fmtMoney,cpm:fmtMoney,cpc:fmtMoney,ctr:fmtPct,cvr:fmtPct,cpa_atc:fmtMoney,cpa_ckt:fmtMoney,cpa_ord:fmtMoney,roas:fmtRoas,aov:fmtMoney,spend_pct:fmtPct};
+var COL_NAME={spend:'花费',impressions:'展示',clicks:'点击',orders:'订单',value:'转化价值',cpm:'CPM',cpc:'CPC',ctr:'CTR',cvr:'CVR',cpa_atc:'单次加购',cpa_ckt:'单次结帐',cpa_ord:'单次购买',roas:'ROAS',aov:'客单价',spend_pct:'花费占比',orders_pct:'订单占比',value_pct:'转化价值占比'};
+var COL_FMT={spend:fmtMoney,impressions:fmtInt,clicks:fmtInt,orders:fmtInt,value:fmtMoney,cpm:fmtMoney,cpc:fmtMoney,ctr:fmtPct,cvr:fmtPct,cpa_atc:fmtMoney,cpa_ckt:fmtMoney,cpa_ord:fmtMoney,roas:fmtRoas,aov:fmtMoney,spend_pct:fmtPct,orders_pct:fmtPct,value_pct:fmtPct};
 var STD_COLS=[];METRIC_GROUPS.forEach(function(g){g.cols.forEach(function(c){STD_COLS.push({k:c,name:COL_NAME[c],fmt:COL_FMT[c]})})});
 var SITES=['Shopify','Shoplazza'];
 var SITE_W={Shopify:1.0,Shoplazza:0.38};
@@ -641,11 +641,15 @@ var FACT={};
 function zero(){return{spend:0,impressions:0,clicks:0,orders:0,value:0,atc:0,ckt:0,vs:0,va:0,inter:0}}
 function addM(a,b){a.spend+=b.spend;a.impressions+=b.impressions;a.clicks+=b.clicks;a.orders+=b.orders;a.value+=b.value;a.atc+=b.atc;a.ckt+=b.ckt;
  /* Google 双口径字段（vs=Shopify/va=Ads后台）随桶聚合携带，否则趋势图 ROAS 线无数据；守卫兼容无该字段的 Meta 数据源 */
- a.vs=(a.vs||0)+(b.vs||0);a.va=(a.va||0)+(b.va||0);a.inter=(a.inter||0)+(b.inter||0);return a}
+ a.vs=(a.vs||0)+(b.vs||0);a.va=(a.va||0)+(b.va||0);a.inter=(a.inter||0)+(b.inter||0);
+ /* 占比字段（*Pct，账号定位行级挂载）随合计守卫透传：同表分母一致时总计=Σ占比（=100%）；任一侧未挂载则不引入 0 值 */
+ if(b.spendPct!=null||a.spendPct!=null)a.spendPct=(a.spendPct||0)+(b.spendPct||0);
+ if(b.ordersPct!=null||a.ordersPct!=null)a.ordersPct=(a.ordersPct||0)+(b.ordersPct||0);
+ if(b.valuePct!=null||a.valuePct!=null)a.valuePct=(a.valuePct||0)+(b.valuePct||0);return a}
 function derive(m){if(!m)return null;return{spend:m.spend,impressions:m.impressions,clicks:m.clicks,orders:m.orders,value:m.value,
  cpm:m.impressions?m.spend/m.impressions*1000:NaN,cpc:m.clicks?m.spend/m.clicks:NaN,ctr:m.impressions?m.clicks/m.impressions:NaN,
  cvr:(m.inter||m.clicks)?m.orders/(m.inter||m.clicks):NaN,cpa_atc:m.atc?m.spend/m.atc:NaN,cpa_ckt:m.ckt?m.spend/m.ckt:NaN,
- cpa_ord:m.orders?m.spend/m.orders:NaN,roas:m.spend?m.value/m.spend:NaN,aov:m.orders?m.value/m.orders:NaN,spend_pct:(m.spendPct!=null?m.spendPct:NaN)}}
+ cpa_ord:m.orders?m.spend/m.orders:NaN,roas:m.spend?m.value/m.spend:NaN,aov:m.orders?m.value/m.orders:NaN,spend_pct:(m.spendPct!=null?m.spendPct:NaN),orders_pct:(m.ordersPct!=null?m.ordersPct:NaN),value_pct:(m.valuePct!=null?m.valuePct:NaN)}}
 /* Top 素材 ad 级 mock */
 var ADS=[];
 (function(){var r=rngFor('ads');
@@ -1158,11 +1162,28 @@ function renderM1(){
  withCmps(rows,function(r,i,rg){return aggTotRange(rg.start,rg.end)});
  regTable('m1','大盘明细','日期',rows,{dateInline:true,dayFn:function(r,d){return aggTotDate(d)}})}
 /* ================= Meta · 账号定位 ================= */
+/* 账号排行明细列（2026-11-06）：花费/订单/转化价值 后各插占比列；分母=Meta 全部账号合计（不受账号筛选影响），总计=Σ占比=100% */
+var M2A_COLS=STD_COLS.slice();
+(function(){function ix(k){for(var i=0;i<M2A_COLS.length;i++)if(M2A_COLS[i].k===k)return i;return -1}
+ var p=ix('spend');M2A_COLS.splice(p+1,0,{k:'spend_pct',name:'花费占比',fmt:fmtPct});
+ p=ix('orders');M2A_COLS.splice(p+1,0,{k:'orders_pct',name:'订单占比',fmt:fmtPct});
+ p=ix('value');M2A_COLS.splice(p+1,0,{k:'value_pct',name:'转化价值占比',fmt:fmtPct})})();
+function metaAccTot(s,e){var m=zero();ACCOUNTS.forEach(function(a){addM(m,aggOneAcc(a,s,e))});return m}
 function renderM2(){
  var rows=ACCOUNTS.filter(accOK).map(function(a){return{label:a,m:aggOneAcc(a,state.start,state.end)}})
   .sort(function(x,y){return y.m.spend-x.m.spend});
- withCmps(rows,function(r,i,rg){return aggOneAcc(r.label,rg.start,rg.end)});
- regTable('m2a','账号排行明细','账号名称',rows,{dayFn:function(r,d){return factScaled(r.label,d)}});
+ var tot=metaAccTot(state.start,state.end);/* 占比分母=Meta 全部账号合计（与行同源，账号筛选不改分母） */
+ rows.forEach(function(r){if(tot.spend)r.m.spendPct=r.m.spend/tot.spend;
+  if(tot.orders)r.m.ordersPct=r.m.orders/tot.orders;if(tot.value)r.m.valuePct=r.m.value/tot.value});
+ withCmps(rows,function(r,i,rg){var m=aggOneAcc(r.label,rg.start,rg.end);
+  var pt=metaAccTot(rg.start,rg.end);
+  if(pt.spend)m.spendPct=m.spend/pt.spend;if(pt.orders)m.ordersPct=m.orders/pt.orders;
+  if(pt.value)m.valuePct=m.value/pt.value;return m});
+ regTable('m2a','账号排行明细','账号名称',rows,{cols:M2A_COLS,
+  gmap:[['投放规模','g0',['spend','spend_pct','impressions','clicks','orders','orders_pct','value','value_pct']],
+        ['流量效率','g1',['cpm','cpc','ctr']],['转化效果','g2',['cvr','cpa_atc','cpa_ckt','cpa_ord']],
+        ['投产回报','g3',['roas','aov']]],
+  dayFn:function(r,d){return factScaled(r.label,d)}});
  var cAgg=aggDimRange(state.start,state.end,'campaign');
  var pk=pickKeys(cmpSel,ddExcl.cmp,CAMPAIGN_POOL);
  var ckeys=Object.keys(cAgg).filter(function(k){var m0=cAgg[k];
