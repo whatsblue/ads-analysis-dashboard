@@ -158,6 +158,8 @@ tr.cmp-d td{color:#5a6b84;background:#f6f9ff;font-size:11.5px}
 tr.cmp-d td:first-child{background:#f6f9ff;font-weight:400;color:#7186a3}
 tr.cmp-delta td{font-size:11.5px;background:#fbfcff}
 tr.cmp-delta td:first-child{background:#fbfcff;font-weight:400;color:#9aa8bc}
+/* 环比波动>5% 高亮（2026-11-05 业务定版）：仅流量效率/转化效果/投产回报三组细分指标（HL_CMP），投放规模组与日期/占比列不参与 */
+tr.cmp-delta td.hl-cmp{background:#fff4cf}
 /* 素材编号展开行（观远式行组）：父行正下方的成员广告明细，浅底+缩进从属视觉 */
 tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
 .exp-tgl{color:var(--pri);cursor:pointer;border-bottom:1px dashed var(--pri);white-space:nowrap}
@@ -542,6 +544,10 @@ function fmtPct(v){return v==null||isNaN(v)?'—':(v*100).toFixed(2)+'%'}
 function fmtRoas(v){return v==null||isNaN(v)?'—':v.toFixed(2)}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
 /* 涨跌色：统一涨绿跌红 */
+/* 环比波动>5% 底色高亮的细分指标键（流量效率 cpm/cpc/ctr + 转化效果 cvr/cpa_* + 投产回报 roas/aov，含 Google 双口径 ROAS） */
+var HL_CMP={cpm:1,cpc:1,ctr:1,cvr:1,cpa_atc:1,cpa_ckt:1,cpa_ord:1,roas:1,aov:1,roas_s:1,roas_a:1};
+function cmpHL(cur,prev){if(prev==null||isNaN(prev)||!prev||cur==null||isNaN(cur))return false;
+ return Math.abs((cur-prev)/prev*100)>5}
 function deltaHtml(cur,prev,col){if(prev==null||isNaN(prev)||!prev)return '<span class="delta u">—</span>';
  var p=(cur-prev)/prev*100;if(!isFinite(p))return '';var up=p>=0;
  return '<span class="delta '+(up?'d':'u')+'">'+(up?'↑':'↓')+' '+Math.abs(p).toFixed(2)+'%</span>'}
@@ -907,7 +913,8 @@ function drawTable(id){var t=tables[id],wrap=I(id+'Wrap');if(!wrap)return;
    h+='<tr class="cmp-delta"><td>'+((t.day||t.dateInline)?'环比':'')+'</td>';
    if(t.pre)t.pre.forEach(function(){h+='<td></td>'});
    if(!t.day&&!t.dateInline)h+='<td>环比</td>';
-   cols.forEach(function(c){h+='<td>'+deltaHtml((o.d||{})[c.k],(cd||{})[c.k],c.k)+'</td>'});h+='</tr>'})});
+   cols.forEach(function(c){var hl=HL_CMP[c.k]&&cmpHL((o.d||{})[c.k],(cd||{})[c.k]);
+    h+='<td'+(hl?' class="hl-cmp"':'')+'>'+deltaHtml((o.d||{})[c.k],(cd||{})[c.k],c.k)+'</td>'});h+='</tr>'})});
  if(more)h+='<tr><td colspan="'+ncol+'" class="more-wrap"><button data-more="'+id+'">加载更多（共 '+rows.length+' 行，已显示 '+t.limit+'）</button></td></tr>';
  /* 总计行：全量行指标求和后重算比率列（同观远表格总计：sum 型求和、比率=Σ分子/Σ分母）；首列统一显示「总计」；noTotal 表除外（如 Google SPU 排行：SPU 表行级拆分致展示/点击重复计，合计无业务意义，观远亦无总计） */
  if(!t.day&&!t.noTotal){
