@@ -382,6 +382,9 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
       <span class="seg mini" id="m4SubTabs" style="margin-left:12px"><button data-st="kol" class="on">红人素材</button><button data-st="xsp">视频广告</button><button data-st="xph">图片广告</button></span>
       <button class="btn xs" data-export="m4sub" style="margin-left:auto">⇩ 导出</button></div>
       <div class="card-b tbl-scroll" id="m4subWrap"></div></div>
+    <div class="card"><div class="card-h"><span id="m4sub2Title">红人付费分类明细</span>
+      <button class="btn xs" data-export="m4sub2" style="margin-left:auto">⇩ 导出</button></div>
+      <div class="card-b tbl-scroll" id="m4sub2Wrap"></div></div>
     </div>
     <div id="m4Drill" class="hidden">
     <div class="card"><div class="card-h"><button class="btn xs" id="btnM4Back">← 返回素材类型明细</button><span id="m4DrillName" style="margin-left:10px;font-weight:700"></span>
@@ -631,14 +634,14 @@ var ADS=[];
    for(var i=0;i<n;i++){
     var owner=OWNERS[Math.floor(r()*4)],th=THEMES[Math.floor(r()*6)];
     var dt=addMonths('2026-09-01',-Math.floor(r()*3));
-    ADS.push({name:tc+(tc==='XSP'?3901:4101)+'_'+dt.slice(0,7).replace('-','')+'_'+owner+'_'+(tc==='XSP'?'单视频_视频':'图片')+'_'+spu+'_'+th,
+    ADS.push({name:(tc==='XSP'?(i%2?'new_':''):(i%2?'XMB_':'FK_'))+tc+(tc==='XSP'?3901:4101)+'_'+dt.slice(0,7).replace('-','')+'_'+owner+'_'+(tc==='XSP'?'单视频_视频':'图片')+'_'+spu+'_'+th,
      type:tc,spu:spu,code:(tc==='XSP'?3901:4101)+'',influencer:'',owner:owner,acc:ACCOUNTS[Math.floor(r()*5)],heat:.4+r(),dt0:dt,dt1:DATE_END})}})});
   var influencers=['nataliamiszczyk','mariah.lari','sofia.jnk','emma_rtz','liam.kow','ava.sch','noah.pel','mia.tan'];
   influencers.forEach(function(inf){
    var n=2+Math.floor(r()*3);
    for(var i=0;i<n;i++){var owner=OWNERS[Math.floor(r()*4)],spu=CAMPAIGN_SPUS[Math.floor(r()*10)];
     var dstr='2026'+String(8+Math.floor(r()*3)).padStart(2,'0')+String(1+Math.floor(r()*28)).padStart(2,'0');
-    ADS.push({name:dstr+'_'+owner+'_图片-'+spu+'_KOL_'+inf+'_红人共创_测款LP_',
+    ADS.push({name:(i%2?'付费_':'')+dstr+'_'+owner+'_图片-'+spu+'_KOL_'+inf+'_红人共创_测款LP_',
      type:'KOL',spu:spu,code:inf,influencer:inf,owner:owner,acc:ACCOUNTS[Math.floor(r()*5)],heat:.5+r(),
      dt0:dstr.slice(0,4)+'-'+dstr.slice(4,6)+'-'+dstr.slice(6,8),dt1:DATE_END})}});
   for(var i=0;i<8;i++){var spu=CAMPAIGN_SPUS[Math.floor(r()*10)],owner=OWNERS[Math.floor(r()*4)];
@@ -1255,6 +1258,14 @@ var SUB_DEFS=[
   split:function(nm){return nm.indexOf('AI')>=0?'AI':'非AI'}},
  {key:'xph',name:'图片广告',types:['图片广告','XPH'],order:['AI','非AI'],
   split:function(nm){return nm.indexOf('AI')>=0?'AI':'非AI'}}];
+/* alt=素材新旧/付费分类（2026-11-05 业务定版）：每个子 tab 附一张关键词分类表（sub2 桶/前端 split 同规则）；
+   视频=含 NEW 新素材/否则复刻；红人=含「付费」付费红人/否则非付费；图片=含 XMB 新/含 FK 复刻/其余其他（大小写敏感同 SQL LIKE） */
+SUB_DEFS[0].alt={title:'红人付费分类明细',order:['付费红人','非付费红人'],
+ split:function(nm){return nm.indexOf('付费')>=0?'付费红人':'非付费红人'}};
+SUB_DEFS[1].alt={title:'素材新旧分类明细',order:['新素材','复刻素材'],
+ split:function(nm){return nm.indexOf('NEW')>=0?'新素材':'复刻素材'}};
+SUB_DEFS[2].alt={title:'素材新旧分类明细',order:['新素材','复刻素材','其他'],
+ split:function(nm){if(nm.indexOf('XMB')>=0)return'新素材';if(nm.indexOf('FK')>=0)return'复刻素材';return'其他'}};
 var m4SubTab='kol';/* 真实模式由覆盖层替换为 RD.sub 直查（subRowsAt/subDayAt） */
 /* ad 级日取数抽象：演示模式=AD_DAILY×站点系数；真实模式由覆盖层替换为 RD.ad 直查（站点过滤在 cell7 内） */
 function subAdCell(name,d){var v=(AD_DAILY[name]||{})[d];if(!v)return null;var f=siteFactor();
@@ -1270,13 +1281,33 @@ function subRowsAt(def,s,e){var gs={};
  return rows}
 function subDayAt(def,label,d){var g=zero();ADS.forEach(function(ad){if(def.types.indexOf(ad.type)<0)return;
  if(def.split(ad.name)!==label)return;var c=subAdCell(ad.name,d);if(c)addM(g,c)});return g}
+/* 新旧/付费分类聚合接口：演示=Top 素材逐条 alt.split；真实=RD.sub2 分桶（覆盖层同构替换） */
+function subRowsAt2(def,s,e){var gs={};
+ ADS.forEach(function(ad){if(def.types.indexOf(ad.type)<0)return;
+  var lab=def.alt.split(ad.name),g=gs[lab];if(!g)g=gs[lab]={label:lab,m:zero()};
+  DATES.forEach(function(d){if(d<s||d>e)return;var c=subAdCell(ad.name,d);if(c)addM(g.m,c)})});
+ var rows=[];def.alt.order.forEach(function(l){if(gs[l])rows.push(gs[l])});
+ Object.keys(gs).forEach(function(l){if(def.alt.order.indexOf(l)<0)rows.push(gs[l])});
+ return rows}
+function subDayAt2(def,label,d){var g=zero();ADS.forEach(function(ad){if(def.types.indexOf(ad.type)<0)return;
+ if(def.alt.split(ad.name)!==label)return;var c=subAdCell(ad.name,d);if(c)addM(g,c)});return g}
 function renderM4Sub(){
  var def=SUB_DEFS.filter(function(x){return x.key===m4SubTab})[0];
  var rows=subRowsAt(def,state.start,state.end);
  withCmps(rows,function(r,i,rg){var a=subRowsAt(def,rg.start,rg.end);
   for(var j=0;j<a.length;j++)if(a[j].label===r.label)return a[j].m;return zero()});
  regTable('m4sub','素材子分类明细','子分类',rows,{sortCol:null,
-  dayFn:function(r,d){return subDayAt(def,r.label,d)}})}
+  dayFn:function(r,d){return subDayAt(def,r.label,d)}});
+ renderM4Sub2()}
+/* 新旧/付费分类明细表（每子 tab 附一张，标题随 tab 切换）：红人=付费/非付费红人；视频=新/复刻素材；图片=新/复刻/其他 */
+function renderM4Sub2(){
+ var def=SUB_DEFS.filter(function(x){return x.key===m4SubTab})[0];
+ var rows=subRowsAt2(def,state.start,state.end);
+ withCmps(rows,function(r,i,rg){var a=subRowsAt2(def,rg.start,rg.end);
+  for(var j=0;j<a.length;j++)if(a[j].label===r.label)return a[j].m;return zero()});
+ I('m4sub2Title').textContent=def.alt.title;
+ regTable('m4sub2',def.alt.title,'素材类型',rows,{sortCol:null,
+  dayFn:function(r,d){return subDayAt2(def,r.label,d)}})}
 /* ================= Meta · 国家维度（默认 Top5 与趋势图联动） ================= */
 var ctySel=[],ctyTop5=[],ctyShown=[];/* ctyTop5=当前窗口花费 Top5（默认展示集合），驱动国家筛选器空态文本；ctyShown=当前实际展示集合快照（原供点击切换推算，交互已移除仅保留） */
 function renderM5(){
@@ -1685,6 +1716,13 @@ subRowsAt=function(def,s,e){var src=RD.sub[SUB_LAB[def.key]]||{},rows=[];
   if(any)rows.push({label:lab,m:m})});
  return rows};
 subDayAt=function(def,label,d){var src=RD.sub[SUB_LAB[def.key]]||{};return cell7((src[label]||{})[d])||zero()};
+/* 新旧/付费分类真实模式直查：RD.sub2=抽取侧同规则 SQL 聚合（含差额校准，合计=素材类型明细） */
+subRowsAt2=function(def,s,e){var src=(RD.sub2||{})[SUB_LAB[def.key]]||{},rows=[];
+ def.alt.order.forEach(function(lab){var b=src[lab];if(!b)return;var m=zero(),any=false;
+  DATES.forEach(function(d){if(d<s||d>e)return;var c=cell7(b[d]);if(c){addM(m,c);any=true}});
+  if(any)rows.push({label:lab,m:m})});
+ return rows};
+subDayAt2=function(def,label,d){var src=(RD.sub2||{})[SUB_LAB[def.key]]||{};return cell7((src[label]||{})[d])||zero()};
 collectTop=function(){
  var s=state.start,e=state.end,pk=pickKeys(adSel,ddExcl.ad,AD_NAMES),groups={};
  ADS.forEach(function(ad,i){
