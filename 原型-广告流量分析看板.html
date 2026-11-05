@@ -432,6 +432,12 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
 
   <section class="panel" id="m6">
     <div class="ptitle"><h2>◎ 年龄维度</h2></div>
+    <div class="two">
+      <div class="card"><div class="card-h">年龄段 ROAS 对比</div><div class="card-b"><div class="chart sm" id="chartM6a"></div></div></div>
+      <div class="card"><div class="card-h"><span>年龄段占比</span>
+        <span class="seg mini" data-amet><button data-t="spend" class="on">花费</button><button data-t="orders">订单量</button><button data-t="value">购物转化价值</button></span></div>
+        <div class="card-b"><div class="chart sm" id="chartM6b"></div></div></div>
+    </div>
     <div class="card"><div class="card-h">年龄段明细
       <button class="btn xs" data-export="m6">⇩ 导出</button></div>
       <div class="card-b tbl-scroll" id="m6Wrap"></div></div>
@@ -497,6 +503,12 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
 
   <section class="panel" id="gm6">
     <div class="ptitle"><h2>◎ 年龄维度</h2></div>
+    <div class="two">
+      <div class="card"><div class="card-h">年龄段 ROAS 对比</div><div class="card-b"><div class="chart sm" id="chartG6a"></div></div></div>
+      <div class="card"><div class="card-h"><span>年龄段占比</span>
+        <span class="seg mini" data-gamet><button data-t="spend" class="on">花费</button><button data-t="orders">订单量</button><button data-t="value">购物转化价值</button></span></div>
+        <div class="card-b"><div class="chart sm" id="chartG6b"></div></div></div>
+    </div>
     <div class="card"><div class="card-h">年龄段明细
       <button class="btn xs" data-export="gm6">⇩ 导出</button></div>
       <div class="card-b tbl-scroll" id="gm6Wrap"></div></div>
@@ -1264,6 +1276,7 @@ function renderM3(){
 /* ================= Meta · 素材效率 ================= */
 var typeSel=[];
 var typeMet='spend';/* 素材类型占比环形图指标（花费/订单量/购物转化价值，2026-11-05 定版） */
+var ageMet='spend',gAgeMet='spend';/* Meta/Google 年龄维度占比环形图指标（2026-11-06 定版，形式对齐素材效率） */
 /* 素材过滤：普通模式=白名单（空=全部）；排除模式=去掉所选 */
 function typeOK(t){return ddExcl.type?(typeSel.length>0&&typeSel.indexOf(t)<0):(!typeSel.length||typeSel.indexOf(t)>=0)}
 function renderM4(){
@@ -1499,6 +1512,20 @@ function renderM6(){
  var rows=AGES.map(function(k){return{label:k,m:aAgg[k]||zero()}});
  withCmps(rows,function(r,i,rg){var o=aggDimRange(rg.start,rg.end,'age');return o[r.label]||zero()});
  regTable('m6','年龄段明细','年龄段',rows,{sortCol:null,dayFn:function(r,d){return aggDimDate(d,'age')[r.label]||zero()}});
+ /* 年龄段 ROAS 对比条形图+占比环形图（2026-11-06 定版，形式对齐素材效率模块：横向条形降序大值在顶/环形按花费降序） */
+ var rk6=AGES.slice().sort(function(x,y){return ((derive(aAgg[y]||zero()).roas)||0)-((derive(aAgg[x]||zero()).roas)||0)});
+ var c6a=chart('chartM6a');
+ if(c6a)c6a.setOption({tooltip:{trigger:'axis'},grid:{left:96,right:44,top:10,bottom:26},
+  xAxis:{type:'value',name:'ROAS'},yAxis:{type:'category',data:rk6,inverse:true},/* 大值在顶 */
+  series:[{type:'bar',barMaxWidth:20,itemStyle:{color:'#10b981',borderRadius:[0,3,3,0]},
+   data:rk6.map(function(k){return +((derive(aAgg[k]||zero()).roas)||0).toFixed(2)}),label:{show:true,position:'right',fontSize:11}}]},true);
+ var ok6=AGES.slice().sort(function(x,y){return ((aAgg[y]||zero()).spend)-((aAgg[x]||zero()).spend)});
+ var c6b=chart('chartM6b');
+ if(c6b)c6b.setOption({tooltip:{trigger:'item',formatter:'{b}: {c} ({d}%)'},legend:{bottom:0},
+  series:[{type:'pie',radius:['45%','70%'],center:['50%','46%'],itemStyle:{borderRadius:4,borderColor:'#fff',borderWidth:2},
+   label:{formatter:'{b}\n{d}%'},
+   data:ok6.map(function(k){var m=aAgg[k]||zero();
+    return{name:k,value:ageMet==='orders'?Math.round(m.orders):+( (ageMet==='value'?m.value:m.spend).toFixed(2))}})}]},true);
 /* 趋势图已于 2026-11-04 按用户定版移除（明细表为主），交互机制 trendOption/objLines 保留 */
 }
 
@@ -1614,6 +1641,21 @@ function renderGm6(){
  var rows=AGES.map(function(ag){return{label:ag,m:gSplitRange(gAgeDate,ag,state.start,state.end)}});
  withCmps(rows,function(r,i,rg){return gSplitRange(gAgeDate,r.label,rg.start,rg.end)});
  regTable('gm6','年龄段明细','年龄段',rows,{mode:'g',cols:G_AGE_COLS,sortCol:null,dayFn:function(r,d){return gSplitRange(gAgeDate,r.label,d,d)}});
+ /* 年龄段 ROAS 对比（Shopify 考核口径单系列，对齐素材效率形式）+占比环形图（2026-11-06 定版） */
+ var gaM={};rows.forEach(function(r){gaM[r.label]=r.m});
+ var rk6=AGES.slice().sort(function(x,y){return ((deriveG(gaM[y]).roas_s)||0)-((deriveG(gaM[x]).roas_s)||0)});
+ var c6a=chart('chartG6a');
+ if(c6a)c6a.setOption({tooltip:{trigger:'axis'},grid:{left:96,right:44,top:10,bottom:26},
+  xAxis:{type:'value',name:'ROAS'},yAxis:{type:'category',data:rk6,inverse:true},/* 大值在顶 */
+  series:[{type:'bar',barMaxWidth:20,itemStyle:{color:'#10b981',borderRadius:[0,3,3,0]},
+   data:rk6.map(function(k){return +((deriveG(gaM[k]).roas_s)||0).toFixed(2)}),label:{show:true,position:'right',fontSize:11}}]},true);
+ var ok6=AGES.slice().sort(function(x,y){return ((gaM[y]||zero()).spend)-((gaM[x]||zero()).spend)});
+ var c6b=chart('chartG6b');
+ if(c6b)c6b.setOption({tooltip:{trigger:'item',formatter:'{b}: {c} ({d}%)'},legend:{bottom:0},
+  series:[{type:'pie',radius:['45%','70%'],center:['50%','46%'],itemStyle:{borderRadius:4,borderColor:'#fff',borderWidth:2},
+   label:{formatter:'{b}\n{d}%'},
+   data:ok6.map(function(k){var m=gaM[k]||zero();
+    return{name:k,value:gAgeMet==='orders'?Math.round(m.orders):+( (gAgeMet==='value'?m.value:m.spend).toFixed(2))}})}]},true);
 /* 趋势图已于 2026-11-04 按用户定版移除（明细表为主），交互机制 trendOption/objLines 保留 */
 }
 
@@ -2097,6 +2139,12 @@ document.addEventListener('click',function(ev){
  if(!sg||ev.target.tagName!=='BUTTON')return;
  [].slice.call(sg.querySelectorAll('button')).forEach(function(x){x.classList.toggle('on',x===ev.target)});
  typeMet=ev.target.dataset.t;renderM4()});
+/* 年龄维度占比环形图指标单选（2026-11-06）：Meta/Google 各自独立，仅重渲染对应年龄模块 */
+document.addEventListener('click',function(ev){
+ var sm=ev.target.closest?ev.target.closest('[data-amet],[data-gamet]'):null;
+ if(!sm||ev.target.tagName!=='BUTTON')return;
+ [].slice.call(sm.querySelectorAll('button')).forEach(function(x){x.classList.toggle('on',x===ev.target)});
+ if(sm.hasAttribute('data-amet')){ageMet=ev.target.dataset.t;renderM6()}else{gAgeMet=ev.target.dataset.t;renderGm6()}});
 function setTab(tab){state.tab=tab;
  [].slice.call(document.querySelectorAll('.tab-btn')).forEach(function(x){x.classList.toggle('on',x.dataset.tab===tab)});
  var lv=lv1Of(tab);
