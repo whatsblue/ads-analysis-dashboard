@@ -214,6 +214,9 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
 .acc-list{flex:1;padding-left:6px;max-height:260px;overflow:auto}
 /* 迷你粒度切换 */
 .seg.mini button{padding:2px 9px;font-size:11px}
+/* 明细表卡头「开启占比」开关（勾选=显示花费/订单/转化价值占比三列，分母=表总计，总计行=100%） */
+.pct-tgl{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--sub);cursor:pointer;white-space:nowrap;user-select:none;margin-left:auto;margin-right:10px}
+.pct-tgl input{accent-color:#2563eb;cursor:pointer;margin:0}
 /* 与看板筛选器按钮（.dd>button）视觉一致：同边框/圆角/内距/字号/min-width/▾ 箭头（原生 select 置换箭头） */
 .mini-sel{border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 26px 5px 8px;font-size:12.5px;color:inherit;min-width:150px;text-align:left;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M1 1.5l4 4 4-4' stroke='%23999' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center}
 /* 导出列表拖拽 */
@@ -590,7 +593,8 @@ function deriveG(m){if(!m)return null;return{spend:m.spend,impressions:m.impress
  /* inter=CV分母：默认全部点击；国家桶传 unified_interactions 对齐观远国家维度 CVR 口径 */
  ctr:m.impressions?m.clicks/m.impressions:NaN,cpc:m.clicks?m.spend/m.clicks:NaN,cpm:m.impressions?m.spend/m.impressions*1000:NaN,
  cvr:(m.inter||m.clicks)?m.orders/(m.inter||m.clicks):NaN,cpa_ord:m.orders?m.spend/m.orders:NaN,
- roas_s:m.spend?m.vs/m.spend:NaN,roas_a:m.spend?m.va/m.spend:NaN,aov:m.orders?m.vs/m.orders:NaN}}
+ roas_s:m.spend?m.vs/m.spend:NaN,roas_a:m.spend?m.va/m.spend:NaN,aov:m.orders?m.vs/m.orders:NaN,
+ spend_pct:(m.spendPct!=null?m.spendPct:NaN),orders_pct:(m.ordersPct!=null?m.ordersPct:NaN),value_pct:(m.valuePct!=null?m.valuePct:NaN)}/* 占比透传（drawTable 通用挂载，与 std derive 同构） */}
 var G_COMBOS=[['search','brand'],['search','no brand'],['shopping','brand'],['shopping','no brand'],['pmax','no brand'],['demandgen','no brand'],['display','no brand']];
 var G_W={'search|brand':.09,'search|no brand':.13,'shopping|brand':.13,'shopping|no brand':.17,'pmax|no brand':.28,'demandgen|no brand':.12,'display|no brand':.08};
 var G_CTY_W={'United States of America':.79961,'Canada':.08736,'Australia':.07340,'United Kingdom':.03144,'Germany':.004145,'France':.004031};
@@ -841,17 +845,46 @@ function trendOption(bk,barSeries,objs){var roas=bk.rows.map(function(m){return 
 var tables={};
 function regTable(id,title,firstCol,rows,opt){opt=opt||{};
  tables[id]={id:id,title:title,firstCol:firstCol,rows:rows,mode:opt.mode||'std',day:!!opt.day,dateInline:!!opt.dateInline,linkFirst:!!opt.linkFirst,firstTip:opt.firstTip||null,pre:opt.pre||null,cols:opt.cols||null,
-  sortCol:('sortCol' in opt)?opt.sortCol:'spend',sortDir:opt.sortDir||'desc',limit:10,tips:opt.tips||null,gmap:opt.gmap||null,totalRows:opt.totalRows||null,noTotal:!!opt.noTotal,gTips:!!opt.gTips,
+  sortCol:('sortCol' in opt)?opt.sortCol:'spend',sortDir:opt.sortDir||'desc',limit:10,tips:opt.tips||null,gmap:opt.gmap||null,totalRows:opt.totalRows||null,noTotal:!!opt.noTotal,gTips:!!opt.gTips,noPct:!!opt.noPct,pctOn:!opt.noPct&&!!PCT_DEF[id],
   expOf:opt.expOf||null,expKey:opt.expKey||null,expanded:{}};/* 展开行组：expOf(r)=成员明细行[{label,m}]，expanded[expKey(r)]=展开态（排序/加载更多保持，重查询重置） */
- drawTable(id)}
+ drawTable(id);
+ if(!tables[id].noPct)ensurePctToggle(id)}/* 卡头注入「开启占比」开关（排除表除外） */
 function colsOf(t){return t.cols||(t.mode==='g'?G_COLS:STD_COLS)}
+/* ===== 开启占比（2026-11-06 全站明细表定版）：卡头勾选→显示花费/订单/转化价值占比三列，分母=所在表总计（totalRows||主行合计），总计行 Σ=100%；环比行挂上期同集合占比 ===== */
+var PCT_DEF={m2a:1,m5:1,m5b:1};/* 默认勾选表（此前已定版常显占比的三表），其余默认关闭 */
+var PCT_COLS={spend_pct:{k:'spend_pct',name:'花费占比',fmt:fmtPct},orders_pct:{k:'orders_pct',name:'订单占比',fmt:fmtPct},value_pct:{k:'value_pct',name:'转化价值占比',fmt:fmtPct}};
+function buildCols(t){/* 占比列先一律剔除（自定义 cols 表关闭开关同样隐藏），开启时再跟随主键注入；转化价值占比注入点=value（Meta）或 vs（Google 双口径表）；返回新数组不改原共享定义 */
+ var cols=colsOf(t).filter(function(c){return!(c.k in PCT_COLS)});
+ var gsrc=t.gmap?t.gmap:(t.mode==='std'&&!t.cols?METRIC_GROUPS.map(function(g){return[g.name,g.bg,g.cols]}):null);
+ var gmap=gsrc?gsrc.map(function(g){return[g[0],g[1],g[2].filter(function(k){return!(k in PCT_COLS)})]}):null;
+ if(t.pctOn){
+  var out=[];cols.forEach(function(c){out.push(c);
+   if(c.k==='spend')out.push(PCT_COLS.spend_pct);
+   if(c.k==='orders')out.push(PCT_COLS.orders_pct);
+   if(c.k==='value'||c.k==='vs')out.push(PCT_COLS.value_pct)});
+  cols=out;
+  if(gmap)gmap.forEach(function(g){var cs=[];g[2].forEach(function(k){cs.push(k);
+   if(k==='spend')cs.push('spend_pct');if(k==='orders')cs.push('orders_pct');
+   if(k==='value'||k==='vs')cs.push('value_pct')});g[2]=cs})}
+ return{cols:cols,gmap:gmap}}
+function ensurePctToggle(id){/* 卡头导出按钮左侧注入「开启占比」checkbox（一次） */
+ var wrap=I(id+'Wrap');if(!wrap)return;
+ var card=wrap.parentNode;while(card&&(' '+card.className+' ').indexOf(' card ')<0)card=card.parentNode;
+ if(!card)return;
+ var btn=card.querySelector('[data-export="'+id+'"]');if(!btn)return;
+ if(btn.parentNode.querySelector('.pct-tgl'))return;
+ var lab=document.createElement('label');lab.className='pct-tgl';lab.title='勾选后展示花费占比、订单占比、转化价值占比（分母=本表总计，总计=100%）';
+ lab.innerHTML='<input type="checkbox"'+(tables[id].pctOn?' checked':'')+'>开启占比';
+ if((btn.getAttribute('style')||'').indexOf('auto')>=0)btn.style.marginLeft='';
+ btn.parentNode.insertBefore(lab,btn);
+ lab.firstChild.addEventListener('change',function(){tables[id].pctOn=this.checked;drawTable(id)})}
 function deriveRow(t,m){return t.mode==='g'?deriveG(m):derive(m)}
 function sortedRows(t){var rows=t.rows.map(function(r){return{r:r,d:deriveRow(t,r.m)}});
  if(!t.sortCol)return rows;/* sortCol=null：保持传入顺序（如年龄段枚举序），点击表头仍可手动排序 */
  rows.sort(function(a,b){var x=a.d[t.sortCol],y=b.d[t.sortCol];
   if(x==null||isNaN(x))x=-Infinity;if(y==null||isNaN(y))y=-Infinity;
   return t.sortDir==='desc'?y-x:x-y});return rows}
-function rowCells(t,d){return colsOf(t).map(function(c){return d?c.fmt(d[c.k]):'—'})}
+function rowCells(t,cols,d){return cols.map(function(c){return d?c.fmt(d[c.k]):'—'})}
 /* 指标口径提示（悬浮表头显示）：std=Meta 页签文案、g=Google 页签文案，互不出现对方渠道内容 */
 var TH_TIP={spend:{std:'已花费金额(USD)：Meta Ads 后台',g:'已花费金额(USD)：Google Ads 后台'},
  impressions:{std:'展示次数（Meta 广告后台）',g:'展示次数（Google Ads 后台）'},
@@ -872,31 +905,34 @@ var TH_TIP={spend:{std:'已花费金额(USD)：Meta Ads 后台',g:'已花费金�
  roas_s:{std:'',g:'ROAS＝Shopify 归因收入÷花费（考核口径）'},
  roas_a:{std:'',g:'ROAS＝Ads 后台转化价值÷花费（投放参考）'}};
 function drawTable(id){var t=tables[id],wrap=I(id+'Wrap');if(!wrap)return;
- var cols=colsOf(t),rows=sortedRows(t),show=rows.slice(0,t.limit),more=rows.length>t.limit;
+ /* 开启占比通用挂载（先于 sortedRows 派生，首绘即有值）：主行与总计行分母=表总计（totalRows||主行合计，筛选/加载更多口径一致）；环比行分母=环比集合合计；展开成员行相对表总计（t._den）；挂载对同表确定性幂等，m5/m5b 行已克隆隔离缓存交叉 */
+ if(t.pctOn){
+  var tAllP=t.totalRows&&t.totalRows.length?t.totalRows:t.rows;
+  var denS=0,denO=0,denV=0;tAllP.forEach(function(r){denS+=r.m.spend||0;denO+=r.m.orders||0;denV+=r.m.value||0});
+  var csS=0,csO=0,csV=0;t.rows.forEach(function(r){(r.cmps||[]).forEach(function(cm){csS+=cm.m.spend||0;csO+=cm.m.orders||0;csV+=cm.m.value||0})});
+  tAllP.forEach(function(r){if(denS)r.m.spendPct=r.m.spend/denS;if(denO)r.m.ordersPct=r.m.orders/denO;if(denV)r.m.valuePct=r.m.value/denV});
+  t.rows.forEach(function(r){(r.cmps||[]).forEach(function(cm){if(csS)cm.m.spendPct=cm.m.spend/csS;if(csO)cm.m.ordersPct=cm.m.orders/csO;if(csV)cm.m.valuePct=cm.m.value/csV})});
+  t._den={s:denS,o:denO,v:denV}}
+ else t._den=null;
+ var rows=sortedRows(t),show=rows.slice(0,t.limit),more=rows.length>t.limit;
+ var BC=buildCols(t),cols=BC.cols,gm=BC.gmap;
  /* 表头提示按模块渠道取文案：mode:'g' 或 gTips:true 用 Google 版，否则 Meta 版（互不见对方渠道）；表级 tips 覆盖优先 */
  var TIP={},tipCh=(t.mode==='g'||t.gTips)?'g':'std';
  for(var tk in TH_TIP){var tv=TH_TIP[tk];TIP[tk]=(tv&&typeof tv==='object')?tv[tipCh]:tv}
  if(t.tips)for(tk in t.tips)TIP[tk]=t.tips[tk];
  var ncol=1+(t.pre?t.pre.length:0)+((t.day||t.dateInline)?0:1)+cols.length;
  var h='<table class="matrix"><thead>';
- if(t.mode==='std'&&!t.cols){h+='<tr class="gtr"><th></th>';
-  if(t.pre)t.pre.forEach(function(){h+='<th></th>'});
-  if(!t.day&&!t.dateInline)h+='<th></th>';
-  METRIC_GROUPS.forEach(function(g){h+='<th class="'+g.bg+'" colspan="'+g.cols.length+'">'+g.name+'</th>'});h+='</tr>'}
- else{var _GDEF=[['投放规模','g0',['spend','impressions','clicks','orders','value','vs','va']],['流量效率','g1',['cpm','cpc','ctr','cvr','cpa_ord']],['投产回报','g3',['roas_s','roas_a','roas','aov']]];
-  var headSpan=1+(t.pre?t.pre.length:0)+((t.day||t.dateInline)?0:1);
-  /* 小标题行空栏逐列渲染（不用 colspan）：sticky 首列列空栏钉住、其余随滚动，
-  与指标行列永久对齐；colspan 盒子会在横向滚动后与下方滚动列错位 */
-  h+='<tr class="gtr"><th></th>';
-  if(t.pre)t.pre.forEach(function(){h+='<th></th>'});
-  if(!t.day&&!t.dateInline)h+='<th></th>';
-  /* Google 模块表头小标题分类（三组）：订单/双口径转化价值归投放规模，CVR 与单次购买归流量效率，
-     双口径 ROAS 与客单价归投产回报；分组内列必须与 cols 实际列序连续，否则 colspan 错位 */
-  [['投放规模','g0',['spend','impressions','clicks','orders','value','vs','va']],['流量效率','g1',['cpm','cpc','ctr','cvr','cpa_ord']],['投产回报','g3',['roas_s','roas_a','roas','aov']]];
-  var gm=t.gmap||_GDEF;/* 表级 gmap：自定义 cols 表的分组小标题（数据驱动，组内列须与 cols 连续） */
-  gm.forEach(function(g){var n=0;cols.forEach(function(c){if(g[2].indexOf(c.k)>=0)n++});
-   if(n)h+='<th class="'+g[1]+'" colspan="'+n+'">'+g[0]+'</th>'});
-  h+='</tr>'}
+ /* 组头统一按注入后 cols 逐组计数（占比列跟随主键计入所在组，开启/关闭均不错位）；小标题空栏逐列渲染：
+    sticky 首列空栏钉住、其余随滚动与指标行列永久对齐；分组内列须与 cols 实际列序连续，否则 colspan 错位；
+    Google 模块三组：订单/双口径转化价值归投放规模，CVR 与单次购买归流量效率，双口径 ROAS 与客单价归投产回报 */
+ var _GDEF=[['投放规模','g0',['spend','impressions','clicks','orders','value','vs','va']],['流量效率','g1',['cpm','cpc','ctr','cvr','cpa_ord']],['投产回报','g3',['roas_s','roas_a','roas','aov']]];
+ if(!gm)gm=_GDEF;
+ h+='<tr class="gtr"><th></th>';
+ if(t.pre)t.pre.forEach(function(){h+='<th></th>'});
+ if(!t.day&&!t.dateInline)h+='<th></th>';
+ gm.forEach(function(g){var n=0;cols.forEach(function(c){if(g[2].indexOf(c.k)>=0)n++});
+  if(n)h+='<th class="'+g[1]+'" colspan="'+n+'">'+g[0]+'</th>'});
+ h+='</tr>';
  h+='<tr><th>'+t.firstCol+'</th>';
  if(t.pre)t.pre.forEach(function(p){h+='<th'+(p.w?' style="min-width:'+p.w+'"':'')+'>'+p.name+'</th>'});
  if(!t.day&&!t.dateInline)h+='<th>日期</th>';
@@ -909,17 +945,18 @@ function drawTable(id){var t=tables[id],wrap=I(id+'Wrap');if(!wrap)return;
   h+='<tr'+(cls?' class="'+cls+'"':'')+'><td>'+(t.dateInline?(dateTxt||label||''):lab)+'</td>';
   if(t.pre)t.pre.forEach(function(p){h+='<td'+(p.w?' style="max-width:'+p.w+';overflow:hidden;text-overflow:ellipsis"':'')+'>'+p.get(curRow)+'</td>'});
   if(!t.day&&!t.dateInline)h+='<td>'+(dateTxt||'')+'</td>';
-  rowCells(t,d).forEach(function(v){h+='<td>'+v+'</td>'});h+='</tr>'}
+  rowCells(t,cols,d).forEach(function(v){h+='<td>'+v+'</td>'});h+='</tr>'}
  var curRow=null,curRange=state.start+' ~ '+state.end;
  show.forEach(function(o){curRow=o.r;
   oneRow(o.r.label,curRange,o.d);
   /* 素材编号展开行（观远式）：点击编号在父行正下方展开全部成员广告及细分指标；成员行按订单降序 */
   if(t.expOf){var ek=t.expKey?t.expKey(o.r):o.r.label;
    if(t.expanded[ek])t.expOf(o.r).forEach(function(x){
+    if(t._den){if(t._den.s)x.m.spendPct=x.m.spend/t._den.s;if(t._den.o)x.m.ordersPct=x.m.orders/t._den.o;if(t._den.v)x.m.valuePct=x.m.value/t._den.v}
     h+='<tr class="exp-row"><td></td>';
     if(t.pre)t.pre.forEach(function(p,pi){h+='<td>'+((pi===t.pre.length-1)?'<span class="exp-name">└ '+esc(x.label)+'</span>':'')+'</td>'});
     if(!t.day&&!t.dateInline)h+='<td></td>';
-    rowCells(t,deriveRow(t,x.m)).forEach(function(v){h+='<td>'+v+'</td>'});h+='</tr>'})}
+    rowCells(t,cols,deriveRow(t,x.m)).forEach(function(v){h+='<td>'+v+'</td>'});h+='</tr>'})}
   if(state.cmpOn&&o.r.cmps)o.r.cmps.forEach(function(cm){var cd=deriveRow(t,cm.m);
    oneRow(t.day?cm.day:'',t.day?'':cm.start+' ~ '+cm.end,cd,'cmp-d');
    h+='<tr class="cmp-delta"><td>'+((t.day||t.dateInline)?'环比':'')+'</td>';
@@ -938,7 +975,7 @@ function drawTable(id){var t=tables[id],wrap=I(id+'Wrap');if(!wrap)return;
   h+='<tr class="tbl-total"><td>总计</td>';
   if(t.pre)t.pre.forEach(function(){h+='<td></td>'});
   if(!t.day&&!t.dateInline)h+='<td></td>';
-  rowCells(t,dt2).forEach(function(v){h+='<td>'+v+'</td>'});h+='</tr>'}}
+  rowCells(t,cols,dt2).forEach(function(v){h+='<td>'+v+'</td>'});h+='</tr>'}}
  h+='</tbody></table>';
  wrap.innerHTML=h;wrap.classList.toggle('tall',t.limit>10);
   /* 内滚表头冻结：测量分组小标题行实际高度，供指标行 sticky top 精确对齐 */
@@ -969,7 +1006,7 @@ window.addEventListener('scroll',thTipHide,true);
 var expCtx={id:null,cols:[],sel:[]};
 function expColNames(t){var a=[t.firstCol];if(t.pre)t.pre.forEach(function(p){a.push(p.name)});
  if(!t.day&&!t.dateInline)a.push('日期');
- colsOf(t).forEach(function(c){a.push(c.name)});return a}
+ buildCols(t).cols.forEach(function(c){a.push(c.name)});return a}/* 开启占比时导出列含三占比 */
 function openExp(id){var t=tables[id];if(!t)return;
  expCtx.id=id;expCtx.cols=expColNames(t);expCtx.sel=expCtx.cols.slice();
  I('expTitle').textContent='导出 · '+t.title;drawExpList();I('expModal').classList.add('on')}
@@ -989,7 +1026,7 @@ function doExport(){var t=tables[expCtx.id];
   o[t.firstCol]=lab;
   if(t.pre)t.pre.forEach(function(p){o[p.name]=dRef?'':String(p.get(curE)).replace(/<[^>]+>/g,'')});
   if(!t.day&&!t.dateInline)o['日期']=dTxt;
-  colsOf(t).forEach(function(c){o[c.name]=dRef?plainPct((d||{})[c.k],(dRef||{})[c.k]):(d&&d!=='__cmp__'?c.fmt(d[c.k]):'')});
+  buildCols(t).cols.forEach(function(c){o[c.name]=dRef?plainPct((d||{})[c.k],(dRef||{})[c.k]):(d&&d!=='__cmp__'?c.fmt(d[c.k]):'')});
   arr.push(names.map(function(n){return csvCell(o[n])}))}
  var curE=null;
  if(gran==='day'&&t.dayFn){
@@ -1169,17 +1206,11 @@ var M2A_COLS=STD_COLS.slice();
  var p=ix('spend');M2A_COLS.splice(p+1,0,{k:'spend_pct',name:'花费占比',fmt:fmtPct});
  p=ix('orders');M2A_COLS.splice(p+1,0,{k:'orders_pct',name:'订单占比',fmt:fmtPct});
  p=ix('value');M2A_COLS.splice(p+1,0,{k:'value_pct',name:'转化价值占比',fmt:fmtPct})})();
-function metaAccTot(s,e){var m=zero();ACCOUNTS.forEach(function(a){addM(m,aggOneAcc(a,s,e))});return m}
 function renderM2(){
  var rows=ACCOUNTS.filter(accOK).map(function(a){return{label:a,m:aggOneAcc(a,state.start,state.end)}})
   .sort(function(x,y){return y.m.spend-x.m.spend});
- var tot=metaAccTot(state.start,state.end);/* 占比分母=Meta 全部账号合计（与行同源，账号筛选不改分母） */
- rows.forEach(function(r){if(tot.spend)r.m.spendPct=r.m.spend/tot.spend;
-  if(tot.orders)r.m.ordersPct=r.m.orders/tot.orders;if(tot.value)r.m.valuePct=r.m.value/tot.value});
- withCmps(rows,function(r,i,rg){var m=aggOneAcc(r.label,rg.start,rg.end);
-  var pt=metaAccTot(rg.start,rg.end);
-  if(pt.spend)m.spendPct=m.spend/pt.spend;if(pt.orders)m.ordersPct=m.orders/pt.orders;
-  if(pt.value)m.valuePct=m.value/pt.value;return m});
+ withCmps(rows,function(r,i,rg){return aggOneAcc(r.label,rg.start,rg.end)});
+ /* 花费/订单/转化价值占比由 drawTable 通用挂载（分母=表总计，总计行 Σ=100%） */
  regTable('m2a','账号排行明细','账号名称',rows,{cols:M2A_COLS,
   gmap:[['投放规模','g0',['spend','spend_pct','impressions','clicks','orders','orders_pct','value','value_pct']],
         ['流量效率','g1',['cpm','cpc','ctr']],['转化效果','g2',['cvr','cpa_atc','cpa_ckt','cpa_ord']],
@@ -1193,7 +1224,7 @@ function renderM2(){
   .sort(function(x,y){return cAgg[y].spend-cAgg[x].spend});
  var crows=ckeys.map(function(k){return{label:k,m:cAgg[k]}});
  withCmps(crows,function(r,i,rg){var o=aggDimRange(rg.start,rg.end,'campaign');return o[r.label]||zero()});
- regTable('m2b','Campaign 明细','Campaign 名称',crows,{dayFn:function(r,d){return aggDimDate(d,'campaign')[r.label]||zero()}})}
+ regTable('m2b','Campaign 明细','Campaign 名称',crows,{noPct:true,dayFn:function(r,d){return aggDimDate(d,'campaign')[r.label]||zero()}})}
 /* 花费&ROAS（按账号）趋势图已于 2026-11-04 按用户定版移除：账号定位模块仅保留账号排行明细与 Campaign 明细两张表 */
 /* ================= Meta · 商品投产 ================= */
 var spuSel=[];
@@ -1289,7 +1320,7 @@ function renderTop(){
    var open=tables.m4c&&tables.m4c.expanded[r.key];
    return '<span class="exp-tgl" data-exp="'+esc(r.key)+'" title="点击'+(open?'收起':'展开')+'该编号下 '+r.items.length+' 条广告的细分指标">'+(open?'▾':'▸')+' '+esc(r.code)+'</span>'}},
   {name:'广告名称',get:function(r){return r.nameHtml}}];
- regTable('m4c','Top 素材分析','素材类型',rows,{pre:pre,sortCol:'orders',sortDir:'desc',
+ regTable('m4c','Top 素材分析','素材类型',rows,{noPct:true,pre:pre,sortCol:'orders',sortDir:'desc',
   expKey:function(r){return r.key},
   expOf:function(g){return g.items.map(function(ad){return{label:ad.name,m:adAggDemo(ad,state.start,state.end)}})
    .sort(function(x,y){return y.m.orders-x.m.orders})},
@@ -1369,11 +1400,8 @@ function renderM5(){
  var keys=pickKeys(ctySel,ddExcl.cty,COUNTRIES)||top.slice(0,5);
  var rows=keys.map(function(k){return{label:k,m:cM(cAgg[k]||zero())}});/* 克隆：占比挂载不污染缓存（cAgg 与 m5b 共享） */
  var tset=keys;
- var tot=0;keys.forEach(function(k){tot+=(cAgg[k]||zero()).spend});/* 占比分母=展示集合花费合计（手动筛选=选中集合；默认=Top5）：总计=Σ占比=100% */
- rows.forEach(function(r){if(tot)r.m.spendPct=r.m.spend/tot});
- withCmps(rows,function(r,i,rg){var o=aggDimRange(rg.start,rg.end,'country');var m=cM(o[r.label]||zero());
-  var pt=0;keys.forEach(function(k){pt+=(o[k]||zero()).spend});
-  if(pt)m.spendPct=m.spend/pt;return m});
+ withCmps(rows,function(r,i,rg){var o=aggDimRange(rg.start,rg.end,'country');return cM(o[r.label]||zero())});
+ /* 占比由 drawTable 通用挂载（分母=表总计=展示集合，总计行 Σ=100%）；行度量 cM 克隆隔离与 m5b 共享的缓存交叉 */
  var tset=keys;/* 总计=实际展示的国家集合（手动筛选=选中集合；默认=Top5），与行数据口径一致避免误导 */
  regTable('m5','国家对比明细','国家',rows,{cols:M5B_COLS,
   gmap:[['投放规模','g0',['spend','spend_pct','impressions','clicks','orders','value']],
@@ -1425,11 +1453,9 @@ function renderM5T(){
 var M5B_COLS=STD_COLS.slice();M5B_COLS.splice(1,0,{k:'spend_pct',name:'花费占比',fmt:fmtPct});/* 占比列紧跟花费 */
 function renderM5B(cAgg){
  var rows=[{label:ctyLbl(US_KEY),m:cAgg[US_KEY]||zero()},{label:ctyLbl('非美国'),m:ctyAgg(cAgg,'非美国')}];
- var tot=rows[0].m.spend+rows[1].m.spend;
- rows.forEach(function(r){r.m.spendPct=tot?r.m.spend/tot:NaN});/* 占比挂行对象，derive 透传 spend_pct（缓存引用幂等） */
  withCmps(rows,function(r,i,rg){var o=aggDimRange(rg.start,rg.end,'country');
-  var u=o[US_KEY]||zero(),t=ctyAgg(o,'非美国'),m=r.label===ctyLbl(US_KEY)?u:t;
-  var tt=u.spend+t.spend;if(tt)m.spendPct=m.spend/tt;return m});
+  var u=o[US_KEY]||zero(),t=ctyAgg(o,'非美国');return cM(r.label===ctyLbl(US_KEY)?u:t)});
+ /* 占比由 drawTable 通用挂载（分母=两行合计，总计行 Σ=100%）；行度量 cM 克隆隔离缓存交叉 */
  regTable('m5b','United States / Non-US 拆分明细','分类',rows,{sortCol:null,cols:M5B_COLS,
   gmap:[['投放规模','g0',['spend','spend_pct','impressions','clicks','orders','value']],
         ['流量效率','g1',['cpm','cpc','ctr']],['转化效果','g2',['cvr','cpa_atc','cpa_ckt','cpa_ord']],
@@ -1554,7 +1580,7 @@ function renderGm2(){
  var crows=(pk||G_CMPS).map(function(cp){return{label:cp,m:gSplitRange(gCmpDate,cp,state.start,state.end)}})
   .sort(function(x,y){return y.m.spend-x.m.spend});
  withCmps(crows,function(r,i,rg){return gSplitRange(gCmpDate,r.label,rg.start,rg.end)});
- regTable('gmc','Campaign 明细','Campaign',crows,{mode:'g',cols:G_CMP_COLS,dayFn:function(r,d){return gCmpDate(r.label,d)}})}
+ regTable('gmc','Campaign 明细','Campaign',crows,{noPct:true,mode:'g',cols:G_CMP_COLS,dayFn:function(r,d){return gCmpDate(r.label,d)}})}
 var gSpuSel=[];
 function renderGm3(){
  var top=G_SPUS.slice().sort(function(x,y){return gSplitRange(gSpuDate,y,state.start,state.end).spend-gSplitRange(gSpuDate,x,state.start,state.end).spend});
@@ -1879,7 +1905,7 @@ renderTop=function(){
    var open=tables.m4c&&tables.m4c.expanded[r.key];
    return '<span class="exp-tgl" data-exp="'+esc(r.key)+'" title="点击'+(open?'收起':'展开')+'该编号下 '+r.items.length+' 条广告的细分指标">'+(open?'▾':'▸')+' '+esc(r.code)+'</span>'}},
   {name:'广告名称',get:function(r){return r.nameHtml}}];
- regTable('m4c','Top 素材分析','素材类型',rows,{pre:pre,sortCol:'orders',sortDir:'desc',
+ regTable('m4c','Top 素材分析','素材类型',rows,{noPct:true,pre:pre,sortCol:'orders',sortDir:'desc',
   expKey:function(r){return r.key},
   expOf:function(g){return g.items.map(function(ad){return{label:ad.name,m:adAgg(ad,state.start,state.end)}})
    .sort(function(x,y){return y.m.orders-x.m.orders})},
