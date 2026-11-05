@@ -217,8 +217,11 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
 /* 明细表卡头「开启占比」开关（勾选=显示花费/订单/转化价值占比三列，分母=表总计，总计行=100%） */
 .pct-tgl{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--sub);cursor:pointer;white-space:nowrap;user-select:none;margin-left:auto;margin-right:10px}
 .pct-tgl input{accent-color:#2563eb;cursor:pointer;margin:0}
-/* 与看板筛选器按钮（.dd>button）视觉一致：同边框/圆角/内距/字号/min-width/▾ 箭头（原生 select 置换箭头） */
-.mini-sel{border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 26px 5px 8px;font-size:12.5px;color:inherit;min-width:150px;text-align:left;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M1 1.5l4 4 4-4' stroke='%23999' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center}
+/* 趋势卡三下拉已换看板同款 .dd 组件（原生 select 弹层无法样式化）：按钮自动继承 .dd>button 样式，面板白底圆角阴影 */
+.cty-panel{min-width:150px;max-height:min(360px,calc(100vh - 200px))}
+.cty-opt{padding:6px 10px;font-size:12.5px;border-radius:5px;cursor:pointer;white-space:nowrap}
+.cty-opt:hover{background:#f2f6ff}
+.cty-opt.on{background:#e8f0fe;color:var(--pri);font-weight:600}
 /* 导出列表拖拽 */
 .exp-list .er{cursor:grab}
 .exp-list .er.dragging{opacity:.45;background:#eef4ff}
@@ -411,10 +414,10 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
     <div class="ptitle"><h2>◎ 国家维度</h2></div>
     <div class="card"><div class="card-h"><span id="ctyTrendTitle">花费趋势对比</span>
       <span style="display:flex;gap:6px;align-items:center;font-weight:400">
-        <select class="mini-sel" id="ctyTrendMetric"></select>
-        <select class="mini-sel" id="ctyTrendA"></select>
+        <div class="dd"><button id="ctyTrendMetricBtn"></button><div class="dd-panel cty-panel" id="ctyTrendMetricPanel"></div></div>
+        <div class="dd"><button id="ctyTrendABtn"></button><div class="dd-panel cty-panel" id="ctyTrendAPanel"></div></div>
         <span style="color:var(--sub)">vs</span>
-        <select class="mini-sel" id="ctyTrendB"></select>
+        <div class="dd"><button id="ctyTrendBBtn"></button><div class="dd-panel cty-panel" id="ctyTrendBPanel"></div></div>
         <span class="seg mini" data-gran><button data-g="day" class="on">按日</button><button data-g="month">按月</button><button data-g="year">按年</button></span></span></div>
       <div class="card-b"><div class="chart" id="chartCty"></div></div></div>
     <div class="card"><div class="card-h"><span>United States / Non-US 拆分明细</span>
@@ -1464,14 +1467,30 @@ function renderM5B(cAgg){
 
 /* 趋势卡下拉初始化：指标 12 项单选；地区选项=非美国特殊项+全部国家（下拉显示名走 ctyLbl：United States/Non-US） */
 function initCtyTrend(){
- I('ctyTrendMetric').innerHTML=CTY_TREND_METRICS.map(function(x){
-  return '<option value="'+x.k+'"'+(x.k===ctyTrendM?' selected':'')+'>'+x.name+'</option>'}).join('');
  var opts=['非美国'].concat(COUNTRIES);opts[1]=US_KEY;/* 美国选项对齐真实数据键 */
- function optOf(v){return opts.map(function(o){return '<option value="'+o+'"'+(o===v?' selected':'')+'>'+ctyLbl(o)+'</option>'}).join('')}
- I('ctyTrendA').innerHTML=optOf(ctyTrendA);I('ctyTrendB').innerHTML=optOf(ctyTrendB);
- I('ctyTrendMetric').addEventListener('change',function(){ctyTrendM=this.value;renderM5T()});
- I('ctyTrendA').addEventListener('change',function(){ctyTrendA=this.value;renderM5T()});
- I('ctyTrendB').addEventListener('change',function(){ctyTrendB=this.value;renderM5T()})}
+ function ddInit(btnId,panelId,items,getVal,setVal){/* 单选即时生效 dd：按钮文本=当前项，选项行点击→高亮+重绘趋势+收起面板 */
+  var btn=I(btnId),panel=I(panelId),dd=btn.parentNode;
+  function paint(){
+   var cur=items.filter(function(it){return it.v===getVal()})[0]||items[0];
+   btn.textContent=cur.n;
+   [].slice.call(panel.children).forEach(function(o){o.classList.toggle('on',o.dataset.v===getVal())})}
+  panel.innerHTML=items.map(function(it){
+   return '<div class="cty-opt'+(it.v===getVal()?' on':'')+'" data-v="'+esc(it.v)+'">'+esc(it.n)+'</div>'}).join('');
+  panel.addEventListener('click',function(ev){
+   var o=ev.target.closest('.cty-opt');if(!o)return;
+   ev.stopPropagation();/* 防全局 dd 外点关闭误判（同既有模式） */
+   setVal(o.dataset.v);paint();renderM5T();
+   dd.classList.remove('open')});
+  paint()}
+ ddInit('ctyTrendMetricBtn','ctyTrendMetricPanel',
+  CTY_TREND_METRICS.map(function(x){return{v:x.k,n:x.name}}),
+  function(){return ctyTrendM},function(v){ctyTrendM=v});
+ ddInit('ctyTrendABtn','ctyTrendAPanel',
+  opts.map(function(o){return{v:o,n:ctyLbl(o)}}),
+  function(){return ctyTrendA},function(v){ctyTrendA=v});
+ ddInit('ctyTrendBBtn','ctyTrendBPanel',
+  opts.map(function(o){return{v:o,n:ctyLbl(o)}}),
+  function(){return ctyTrendB},function(v){ctyTrendB=v})}
 initCtyTrend();
 
 /* ================= Meta · 年龄维度 ================= */
