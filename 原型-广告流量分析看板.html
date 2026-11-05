@@ -1193,7 +1193,7 @@ function renderM1(){
  var rgs=state.cmpOn?cmpRanges():[],prev=rgs[0]?aggTotRange(rgs[0].start,rgs[0].end):null,dP=prev?derive(prev):null;
  var kh='';[['花费',fmtMoney(all.spend),dA.spend,dP&&dP.spend],['订单',fmtInt(all.orders),dA.orders,dP&&dP.orders],
   ['转化价值',fmtMoney(all.value),dA.value,dP&&dP.value],['ROAS',fmtRoas(dA.roas),dA.roas,dP&&dP.roas],
-  ['CPC',fmtMoney(dA.cpc),dA.cpc,dP&&dP.cpc],['CTR',fmtPct(dA.ctr),dA.ctr,dP&&dP.ctr]]
+  ['客单价',fmtMoney(dA.aov),dA.aov,dP&&dP.aov],['CVR',fmtPct(dA.cvr),dA.cvr,dP&&dP.cvr]]
   .forEach(function(k){kh+='<div class="kpi"><div class="t">'+k[0]+'</div><div class="v">'+k[1]+'</div><div class="s">'+(k[3]!=null?deltaHtml(k[2],k[3]):'')+'</div></div>'});
  I('m1Kpis').innerHTML=kh;
  var c=chart('chart1'),bk=bucketAgg(function(d){return aggTotDate(d)},chartGran('chart1'));
@@ -1583,7 +1583,7 @@ function renderGm1(){
  if(prev){var p0=gRowsRange(prev.start,prev.end,''),bp=aggBrand(p0,'brand');brandPctP=prev.spend?bp.spend/prev.spend*100:0}
  /* 指标卡环比与 Meta 一致：对比期取环比设置首个周期 */
  var kh='';[['花费',fmtMoney(all.spend),dG.spend,dP&&dP.spend],['ROAS(Shopify)',fmtRoas(dG.roas_s),dG.roas_s,dP&&dP.roas_s],['ROAS(Ads后台)',fmtRoas(dG.roas_a),dG.roas_a,dP&&dP.roas_a],
-  ['CTR',fmtPct(dG.ctr),dG.ctr,dP&&dP.ctr],['CPC',fmtMoney(dG.cpc),dG.cpc,dP&&dP.cpc],['品牌词花费占比',brandPct.toFixed(2)+'%',brandPct,brandPctP]]
+  ['CVR',fmtPct(dG.cvr),dG.cvr,dP&&dP.cvr],['客单价',fmtMoney(dG.aov),dG.aov,dP&&dP.aov],['品牌词花费占比',brandPct.toFixed(2)+'%',brandPct,brandPctP]]
   .forEach(function(k){kh+='<div class="kpi"><div class="t">'+k[0]+'</div><div class="v">'+k[1]+'</div><div class="s">'+(k[3]!=null?deltaHtml(k[2],k[3]):'')+'</div></div>'});
  I('gm1Kpis').innerHTML=kh;
  var rows=[{label:state.start+' ~ '+state.end,m:all}];
