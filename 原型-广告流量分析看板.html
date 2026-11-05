@@ -1361,16 +1361,26 @@ function renderM4Sub2(){
  regTable('m4sub2',def.alt.title,'子分类',rows,{sortCol:null,
   dayFn:function(r,d){return subDayAt2(def,r.label,d)}})}
 /* ================= Meta · 国家维度（默认 Top5 与趋势图联动） ================= */
+function cM(m){var z=zero();addM(z,m);return z}/* 度量对象克隆（zero+addM 深拷贝标准字段） */
 var ctySel=[],ctyTop5=[],ctyShown=[];/* ctyTop5=当前窗口花费 Top5（默认展示集合），驱动国家筛选器空态文本；ctyShown=当前实际展示集合快照（原供点击切换推算，交互已移除仅保留） */
 function renderM5(){
  var cAgg=aggDimRange(state.start,state.end,'country');
  var top=Object.keys(cAgg).filter(function(k){return cAgg[k].spend>0}).sort(function(x,y){return cAgg[y].spend-cAgg[x].spend});
  var keys=pickKeys(ctySel,ddExcl.cty,COUNTRIES)||top.slice(0,5);
- var rows=keys.map(function(k){return{label:k,m:cAgg[k]||zero()}});
- withCmps(rows,function(r,i,rg){var o=aggDimRange(rg.start,rg.end,'country');return o[r.label]||zero()});
+ var rows=keys.map(function(k){return{label:k,m:cM(cAgg[k]||zero())}});/* 克隆：占比挂载不污染缓存（cAgg 与 m5b 共享） */
+ var tset=keys;
+ var tot=0;keys.forEach(function(k){tot+=(cAgg[k]||zero()).spend});/* 占比分母=展示集合花费合计（手动筛选=选中集合；默认=Top5）：总计=Σ占比=100% */
+ rows.forEach(function(r){if(tot)r.m.spendPct=r.m.spend/tot});
+ withCmps(rows,function(r,i,rg){var o=aggDimRange(rg.start,rg.end,'country');var m=cM(o[r.label]||zero());
+  var pt=0;keys.forEach(function(k){pt+=(o[k]||zero()).spend});
+  if(pt)m.spendPct=m.spend/pt;return m});
  var tset=keys;/* 总计=实际展示的国家集合（手动筛选=选中集合；默认=Top5），与行数据口径一致避免误导 */
- regTable('m5','国家对比明细','国家',rows,{dayFn:function(r,d){return aggDimDate(d,'country')[r.label]||zero()},
- totalRows:tset.map(function(k){return{label:k,m:cAgg[k]||zero()}})});
+ regTable('m5','国家对比明细','国家',rows,{cols:M5B_COLS,
+  gmap:[['投放规模','g0',['spend','spend_pct','impressions','clicks','orders','value']],
+        ['流量效率','g1',['cpm','cpc','ctr']],['转化效果','g2',['cvr','cpa_atc','cpa_ckt','cpa_ord']],
+        ['投产回报','g3',['roas','aov']]],
+  dayFn:function(r,d){return aggDimDate(d,'country')[r.label]||zero()},
+ totalRows:rows});/* 总计行=展示集合合计（行已挂占比，addM 守卫透传 Σ=100%） */
 /* 趋势图已于 2026-11-04 按用户定版移除（明细表为主），交互机制 trendOption/objLines 保留 */
 
  ctyTop5=top.slice(0,5);ctyShown=keys.slice();if(ctyDD)ctyDD.sync();renderM5T();renderM5B(cAgg)}/* 空态文本跟随最新 Top5（日期/站点变化后同步） */
