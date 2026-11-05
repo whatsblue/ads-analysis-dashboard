@@ -376,7 +376,9 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
     <div id="m4Main">
     <div class="two">
       <div class="card"><div class="card-h">素材类型 ROAS 对比</div><div class="card-b"><div class="chart sm" id="chart4a"></div></div></div>
-      <div class="card"><div class="card-h">素材类型花费占比</div><div class="card-b"><div class="chart sm" id="chart4b"></div></div></div>
+      <div class="card"><div class="card-h"><span>素材类型占比</span>
+        <span class="seg mini" data-tmet><button data-t="spend" class="on">花费</button><button data-t="orders">订单量</button><button data-t="value">购物转化价值</button></span></div>
+        <div class="card-b"><div class="chart sm" id="chart4b"></div></div></div>
     </div>
     <div class="card"><div class="card-h">素材类型明细<span style="font-weight:400;color:var(--sub);font-size:11px;margin-left:8px">点击「素材类型」名称下钻查看该类型 Top 素材</span>
       <button class="btn xs" data-export="m4a">⇩ 导出</button></div>
@@ -1200,6 +1202,7 @@ function renderM3(){
 }
 /* ================= Meta · 素材效率 ================= */
 var typeSel=[];
+var typeMet='spend';/* 素材类型占比环形图指标（花费/订单量/购物转化价值，2026-11-05 定版） */
 /* 素材过滤：普通模式=白名单（空=全部）；排除模式=去掉所选 */
 function typeOK(t){return ddExcl.type?(typeSel.length>0&&typeSel.indexOf(t)<0):(!typeSel.length||typeSel.indexOf(t)>=0)}
 function renderM4(){
@@ -1220,7 +1223,8 @@ function renderM4(){
  if(c4b)c4b.setOption({tooltip:{trigger:'item',formatter:'{b}: {c} ({d}%)'},legend:{bottom:0},
   series:[{type:'pie',radius:['45%','70%'],center:['50%','46%'],itemStyle:{borderRadius:4,borderColor:'#fff',borderWidth:2},
    label:{formatter:'{b}\n{d}%'},
-   data:keys.map(function(k){return{name:TYPE_NAME[k],value:+(tAgg[k]?tAgg[k].spend:0).toFixed(2)}})}]},true);
+   data:keys.map(function(k){var m=tAgg[k]||zero();
+    return{name:TYPE_NAME[k],value:typeMet==='orders'?Math.round(m.orders):+(typeMet==='value'?m.value:m.spend).toFixed(2)}})}]},true);
  renderTop();renderM4Sub()}
 /* 素材编号提取（复刻观远）：广告名内规范素材编码 XSP\d+/XPH\d+（大小写不敏感）；红人/目录及无编码素材无编号 */
 function adCodeOf(nm){var m=/(?:XSP|XPH)\d{3,}/i.exec(nm||'');return m?m[0].toUpperCase():''}
@@ -1996,6 +2000,12 @@ document.addEventListener('click',function(ev){
  [].slice.call(seg.querySelectorAll('button')).forEach(function(x){x.classList.toggle('on',x===ev.target)});
  grans[cid]=ev.target.dataset.g;
  var fn=GRAN_RENDER[cid];if(fn)fn()});
+/* 素材类型占比环形图指标单选：仅重渲染素材效率模块（renderM4 含明细表联动同源聚合，开销可忽略） */
+document.addEventListener('click',function(ev){
+ var sg=ev.target.closest?ev.target.closest('[data-tmet]'):null;
+ if(!sg||ev.target.tagName!=='BUTTON')return;
+ [].slice.call(sg.querySelectorAll('button')).forEach(function(x){x.classList.toggle('on',x===ev.target)});
+ typeMet=ev.target.dataset.t;renderM4()});
 function setTab(tab){state.tab=tab;
  [].slice.call(document.querySelectorAll('.tab-btn')).forEach(function(x){x.classList.toggle('on',x.dataset.tab===tab)});
  var lv=lv1Of(tab);
