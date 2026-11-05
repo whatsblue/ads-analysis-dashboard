@@ -402,23 +402,23 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
     </div>
   </section>
 
-  <section class="panel" id="m5">
-    <div class="ptitle"><h2>◎ 国家维度</h2>
-      <span style="margin-left:auto;display:flex;gap:8px;align-items:center;font-weight:400">
-        <span class="dd" id="ddCountry"><button id="ddCountryBtn">默认花费 Top5</button><div class="dd-panel" id="ddCountryPanel"></div></span></span></div>
-    <div class="card"><div class="card-h">国家对比明细
+    <section class="panel" id="m5">
+    <div class="ptitle"><h2>◎ 国家维度</h2></div>
     <div class="card"><div class="card-h"><span id="ctyTrendTitle">花费趋势对比</span>
-      <span style="margin-left:auto;display:flex;gap:6px;align-items:center;font-weight:400">
+      <span style="display:flex;gap:6px;align-items:center;font-weight:400">
         <select class="mini-sel" id="ctyTrendMetric"></select>
         <select class="mini-sel" id="ctyTrendA"></select>
         <span style="color:var(--sub)">vs</span>
         <select class="mini-sel" id="ctyTrendB"></select>
         <span class="seg mini" data-gran><button data-g="day" class="on">按日</button><button data-g="month">按月</button><button data-g="year">按年</button></span></span></div>
       <div class="card-b"><div class="chart" id="chartCty"></div></div></div>
-    <div class="card"><div class="card-h">美国 / 非美国拆分明细
+    <div class="card"><div class="card-h"><span>美国 / 非美国拆分明细</span>
       <button class="btn xs" data-export="m5b">⇩ 导出</button></div>
       <div class="card-b tbl-scroll" id="m5bWrap"></div></div>
-      <button class="btn xs" data-export="m5">⇩ 导出</button></div>
+    <div class="card"><div class="card-h"><span>国家对比明细</span>
+      <span style="display:flex;gap:8px;align-items:center;font-weight:400">
+        <span class="dd" id="ddCountry"><button id="ddCountryBtn">默认花费 Top5</button><div class="dd-panel" id="ddCountryPanel"></div></span>
+        <button class="btn xs" data-export="m5">⇩ 导出</button></span></div>
       <div class="card-b tbl-scroll" id="m5Wrap"></div></div>
   </section>
 
@@ -561,8 +561,8 @@ var METRIC_GROUPS=[
  {name:'流量效率',bg:'g1',cols:['cpm','cpc','ctr']},
  {name:'转化效果',bg:'g2',cols:['cvr','cpa_atc','cpa_ckt','cpa_ord']},
  {name:'投产回报',bg:'g3',cols:['roas','aov']}];
-var COL_NAME={spend:'花费',impressions:'展示',clicks:'点击',orders:'订单',value:'转化价值',cpm:'CPM',cpc:'CPC',ctr:'CTR',cvr:'CVR',cpa_atc:'单次加购',cpa_ckt:'单次结帐',cpa_ord:'单次购买',roas:'ROAS',aov:'客单价'};
-var COL_FMT={spend:fmtMoney,impressions:fmtInt,clicks:fmtInt,orders:fmtInt,value:fmtMoney,cpm:fmtMoney,cpc:fmtMoney,ctr:fmtPct,cvr:fmtPct,cpa_atc:fmtMoney,cpa_ckt:fmtMoney,cpa_ord:fmtMoney,roas:fmtRoas,aov:fmtMoney};
+var COL_NAME={spend:'花费',impressions:'展示',clicks:'点击',orders:'订单',value:'转化价值',cpm:'CPM',cpc:'CPC',ctr:'CTR',cvr:'CVR',cpa_atc:'单次加购',cpa_ckt:'单次结帐',cpa_ord:'单次购买',roas:'ROAS',aov:'客单价',spend_pct:'花费占比'};
+var COL_FMT={spend:fmtMoney,impressions:fmtInt,clicks:fmtInt,orders:fmtInt,value:fmtMoney,cpm:fmtMoney,cpc:fmtMoney,ctr:fmtPct,cvr:fmtPct,cpa_atc:fmtMoney,cpa_ckt:fmtMoney,cpa_ord:fmtMoney,roas:fmtRoas,aov:fmtMoney,spend_pct:fmtPct};
 var STD_COLS=[];METRIC_GROUPS.forEach(function(g){g.cols.forEach(function(c){STD_COLS.push({k:c,name:COL_NAME[c],fmt:COL_FMT[c]})})});
 var SITES=['Shopify','Shoplazza'];
 var SITE_W={Shopify:1.0,Shoplazza:0.38};
@@ -644,7 +644,7 @@ function addM(a,b){a.spend+=b.spend;a.impressions+=b.impressions;a.clicks+=b.cli
 function derive(m){if(!m)return null;return{spend:m.spend,impressions:m.impressions,clicks:m.clicks,orders:m.orders,value:m.value,
  cpm:m.impressions?m.spend/m.impressions*1000:NaN,cpc:m.clicks?m.spend/m.clicks:NaN,ctr:m.impressions?m.clicks/m.impressions:NaN,
  cvr:(m.inter||m.clicks)?m.orders/(m.inter||m.clicks):NaN,cpa_atc:m.atc?m.spend/m.atc:NaN,cpa_ckt:m.ckt?m.spend/m.ckt:NaN,
- cpa_ord:m.orders?m.spend/m.orders:NaN,roas:m.spend?m.value/m.spend:NaN,aov:m.orders?m.value/m.orders:NaN}}
+ cpa_ord:m.orders?m.spend/m.orders:NaN,roas:m.spend?m.value/m.spend:NaN,aov:m.orders?m.value/m.orders:NaN,spend_pct:(m.spendPct!=null?m.spendPct:NaN)}}
 /* Top 素材 ad 级 mock */
 var ADS=[];
 (function(){var r=rngFor('ads');
@@ -833,7 +833,7 @@ function trendOption(bk,barSeries,objs){var roas=bk.rows.map(function(m){return 
 var tables={};
 function regTable(id,title,firstCol,rows,opt){opt=opt||{};
  tables[id]={id:id,title:title,firstCol:firstCol,rows:rows,mode:opt.mode||'std',day:!!opt.day,dateInline:!!opt.dateInline,linkFirst:!!opt.linkFirst,firstTip:opt.firstTip||null,pre:opt.pre||null,cols:opt.cols||null,
-  sortCol:('sortCol' in opt)?opt.sortCol:'spend',sortDir:opt.sortDir||'desc',limit:10,tips:opt.tips||null,totalRows:opt.totalRows||null,noTotal:!!opt.noTotal,gTips:!!opt.gTips,
+  sortCol:('sortCol' in opt)?opt.sortCol:'spend',sortDir:opt.sortDir||'desc',limit:10,tips:opt.tips||null,gmap:opt.gmap||null,totalRows:opt.totalRows||null,noTotal:!!opt.noTotal,gTips:!!opt.gTips,
   expOf:opt.expOf||null,expKey:opt.expKey||null,expanded:{}};/* 展开行组：expOf(r)=成员明细行[{label,m}]，expanded[expKey(r)]=展开态（排序/加载更多保持，重查询重置） */
  drawTable(id)}
 function colsOf(t){return t.cols||(t.mode==='g'?G_COLS:STD_COLS)}
@@ -875,7 +875,8 @@ function drawTable(id){var t=tables[id],wrap=I(id+'Wrap');if(!wrap)return;
   if(t.pre)t.pre.forEach(function(){h+='<th></th>'});
   if(!t.day&&!t.dateInline)h+='<th></th>';
   METRIC_GROUPS.forEach(function(g){h+='<th class="'+g.bg+'" colspan="'+g.cols.length+'">'+g.name+'</th>'});h+='</tr>'}
- else{var headSpan=1+(t.pre?t.pre.length:0)+((t.day||t.dateInline)?0:1);
+ else{var _GDEF=[['投放规模','g0',['spend','impressions','clicks','orders','value','vs','va']],['流量效率','g1',['cpm','cpc','ctr','cvr','cpa_ord']],['投产回报','g3',['roas_s','roas_a','roas','aov']]];
+  var headSpan=1+(t.pre?t.pre.length:0)+((t.day||t.dateInline)?0:1);
   /* 小标题行空栏逐列渲染（不用 colspan）：sticky 首列列空栏钉住、其余随滚动，
   与指标行列永久对齐；colspan 盒子会在横向滚动后与下方滚动列错位 */
   h+='<tr class="gtr"><th></th>';
@@ -883,8 +884,9 @@ function drawTable(id){var t=tables[id],wrap=I(id+'Wrap');if(!wrap)return;
   if(!t.day&&!t.dateInline)h+='<th></th>';
   /* Google 模块表头小标题分类（三组）：订单/双口径转化价值归投放规模，CVR 与单次购买归流量效率，
      双口径 ROAS 与客单价归投产回报；分组内列必须与 cols 实际列序连续，否则 colspan 错位 */
-  [['投放规模','g0',['spend','impressions','clicks','orders','value','vs','va']],['流量效率','g1',['cpm','cpc','ctr','cvr','cpa_ord']],['投产回报','g3',['roas_s','roas_a','roas','aov']]]
-  .forEach(function(g){var n=0;cols.forEach(function(c){if(g[2].indexOf(c.k)>=0)n++});
+  [['投放规模','g0',['spend','impressions','clicks','orders','value','vs','va']],['流量效率','g1',['cpm','cpc','ctr','cvr','cpa_ord']],['投产回报','g3',['roas_s','roas_a','roas','aov']]];
+  var gm=t.gmap||_GDEF;/* 表级 gmap：自定义 cols 表的分组小标题（数据驱动，组内列须与 cols 连续） */
+  gm.forEach(function(g){var n=0;cols.forEach(function(c){if(g[2].indexOf(c.k)>=0)n++});
    if(n)h+='<th class="'+g[1]+'" colspan="'+n+'">'+g[0]+'</th>'});
   h+='</tr>'}
  h+='<tr><th>'+t.firstCol+'</th>';
@@ -1383,13 +1385,20 @@ function renderM5T(){
   legend:{data:labels,top:0},grid:{left:56,right:20,top:30,bottom:26},
   xAxis:{type:'category',data:order},yAxis:{type:'value',scale:true},series:series},true)}
 /* 美国/非美国拆分明细：固定两行（美国/非美国）不排序；总计行=两行之和=大盘全部国家 */
+var M5B_COLS=STD_COLS.slice();M5B_COLS.splice(1,0,{k:'spend_pct',name:'花费占比',fmt:fmtPct});/* 占比列紧跟花费 */
 function renderM5B(cAgg){
  var rows=[{label:'美国',m:cAgg[US_KEY]||zero()},{label:'非美国',m:ctyAgg(cAgg,'非美国')}];
  var tot=rows[0].m.spend+rows[1].m.spend;
- withCmps(rows,function(r,i,rg){return ctyAgg(aggDimRange(rg.start,rg.end,'country'),r.label)});
- regTable('m5b','美国 / 非美国拆分明细','分类',rows,{sortCol:null,
-  pre:[{name:'花费占比',w:'76px',get:function(r){return tot?fmtPct(r.m.spend/tot):'—'}}],
+ rows.forEach(function(r){r.m.spendPct=tot?r.m.spend/tot:NaN});/* 占比挂行对象，derive 透传 spend_pct（缓存引用幂等） */
+ withCmps(rows,function(r,i,rg){var o=aggDimRange(rg.start,rg.end,'country');
+  var u=o[US_KEY]||zero(),t=ctyAgg(o,'非美国'),m=r.label==='美国'?u:t;
+  var tt=u.spend+t.spend;if(tt)m.spendPct=m.spend/tt;return m});
+ regTable('m5b','美国 / 非美国拆分明细','分类',rows,{sortCol:null,cols:M5B_COLS,
+  gmap:[['投放规模','g0',['spend','spend_pct','impressions','clicks','orders','value']],
+        ['流量效率','g1',['cpm','cpc','ctr']],['转化效果','g2',['cvr','cpa_atc','cpa_ckt','cpa_ord']],
+        ['投产回报','g3',['roas','aov']]],
   dayFn:function(r,d){return ctyAggDay(d,r.label)}})}
+
 /* 趋势卡下拉初始化：指标 12 项单选；地区选项=非美国特殊项+全部国家（USA 下拉显示名映射「美国」） */
 function initCtyTrend(){
  I('ctyTrendMetric').innerHTML=CTY_TREND_METRICS.map(function(x){
