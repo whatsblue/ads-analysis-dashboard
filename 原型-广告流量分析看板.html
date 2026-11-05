@@ -158,7 +158,7 @@ tr.cmp-d td{color:#5a6b84;background:#f6f9ff;font-size:11.5px}
 tr.cmp-d td:first-child{background:#f6f9ff;font-weight:400;color:#7186a3}
 tr.cmp-delta td{font-size:11.5px;background:#fbfcff}
 tr.cmp-delta td:first-child{background:#fbfcff;font-weight:400;color:#9aa8bc}
-/* 环比波动>5% 高亮（2026-11-05 业务定版）：仅流量效率/转化效果/投产回报三组细分指标（HL_CMP），投放规模组与日期/占比列不参与 */
+/* 环比波动>5% 高亮（2026-11-06 业务定版）：仅 CVR/ROAS/客单价 三个钱效率指标（HL_CMP，含 ROAS(Shopify)/(Google) 同族扩展列）；CPM/CPC/CTR/单次成本类暂时不高亮。依据当日数据调研：5% 阈值下流量组触发率 70%+ 接近全亮失去辨识度，转化组天然波动大 */
 tr.cmp-delta td.hl-cmp{background:#fff4cf}
 /* 素材编号展开行（观远式行组）：父行正下方的成员广告明细，浅底+缩进从属视觉 */
 tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
@@ -547,7 +547,7 @@ function fmtRoas(v){return v==null||isNaN(v)?'—':v.toFixed(2)}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
 /* 涨跌色：统一涨绿跌红 */
 /* 环比波动>5% 底色高亮的细分指标键（流量效率 cpm/cpc/ctr + 转化效果 cvr/cpa_* + 投产回报 roas/aov，含 Google 双口径 ROAS） */
-var HL_CMP={cpm:1,cpc:1,ctr:1,cvr:1,cpa_atc:1,cpa_ckt:1,cpa_ord:1,roas:1,aov:1,roas_s:1,roas_a:1};
+var HL_CMP={cvr:1,roas:1,aov:1,roas_s:1,roas_a:1};
 function cmpHL(cur,prev){if(prev==null||isNaN(prev)||!prev||cur==null||isNaN(cur))return false;
  return Math.abs((cur-prev)/prev*100)>5}
 function deltaHtml(cur,prev,col){if(prev==null||isNaN(prev)||!prev)return '<span class="delta u">—</span>';
