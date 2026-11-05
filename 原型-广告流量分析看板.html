@@ -1358,7 +1358,7 @@ function renderM4Sub2(){
  withCmps(rows,function(r,i,rg){var a=subRowsAt2(def,rg.start,rg.end);
   for(var j=0;j<a.length;j++)if(a[j].label===r.label)return a[j].m;return zero()});
  I('m4sub2Title').textContent=def.alt.title;
- regTable('m4sub2',def.alt.title,'素材类型',rows,{sortCol:null,
+ regTable('m4sub2',def.alt.title,'子分类',rows,{sortCol:null,
   dayFn:function(r,d){return subDayAt2(def,r.label,d)}})}
 /* ================= Meta · 国家维度（默认 Top5 与趋势图联动） ================= */
 var ctySel=[],ctyTop5=[],ctyShown=[];/* ctyTop5=当前窗口花费 Top5（默认展示集合），驱动国家筛选器空态文本；ctyShown=当前实际展示集合快照（原供点击切换推算，交互已移除仅保留） */
