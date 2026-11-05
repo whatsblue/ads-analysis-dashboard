@@ -684,7 +684,9 @@ var G_DAILY={};
   G_DAILY[key][d]={spend:sp,impressions:impr,clicks:clicks,orders:Math.round(ord),vs:vs,va:va}})})})();
 var G_UNKNOWN_VS=3236.75/30;
 /* ================= 状态 / 环比引擎 ================= */
-var state={start:'2026-09-22',end:'2026-10-21',sites:SITES.slice(),accounts:ACCOUNTS.slice(),cmpOn:true,cmpT:'week',cmpN:1,cmpEd:null,gran:'day',lv1:'ca',tab:'ca'};
+/* 默认视图＝上个自然周（周一~周日）；演示数据窗口（≤DATE_END）外回退静态默认 */
+var _lw=(function(){var d=new Date();var off=(d.getDay()+6)%7+7;var m=new Date(d.getFullYear(),d.getMonth(),d.getDate()-off);var e=new Date(m.getTime()+6*86400000);function f(x){return x.getFullYear()+'-'+('0'+(x.getMonth()+1)).slice(-2)+'-'+('0'+x.getDate()).slice(-2)}return{a:f(m),b:f(e)}})();
+var state={start:(_lw.b<=DATE_END?_lw.a:'2026-09-22'),end:(_lw.b<=DATE_END?_lw.b:'2026-10-21'),sites:SITES.slice(),accounts:ACCOUNTS.slice(),cmpOn:true,cmpT:'week',cmpN:1,cmpEd:null,gran:'day',lv1:'ca',tab:'ca'};
 var charts={};
 function chart(id){var el=I(id);if(!el||!window.echarts)return null;
  /* tooltip 挂到 body（appendToBody）+ 限制在视口内（confine）：不被卡片 overflow 裁剪，悬浮内容完整展示 */
