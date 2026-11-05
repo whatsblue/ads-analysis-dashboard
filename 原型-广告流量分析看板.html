@@ -214,7 +214,8 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
 .acc-list{flex:1;padding-left:6px;max-height:260px;overflow:auto}
 /* 迷你粒度切换 */
 .seg.mini button{padding:2px 9px;font-size:11px}
-.mini-sel{border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-size:11px;color:var(--sub);background:#fff;max-width:150px}
+/* 与看板筛选器按钮（.dd>button）视觉一致：同边框/圆角/内距/字号/min-width/▾ 箭头（原生 select 置换箭头） */
+.mini-sel{border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 26px 5px 8px;font-size:12.5px;color:inherit;min-width:150px;text-align:left;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M1 1.5l4 4 4-4' stroke='%23999' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center}
 /* 导出列表拖拽 */
 .exp-list .er{cursor:grab}
 .exp-list .er.dragging{opacity:.45;background:#eef4ff}
@@ -413,7 +414,7 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
         <select class="mini-sel" id="ctyTrendB"></select>
         <span class="seg mini" data-gran><button data-g="day" class="on">按日</button><button data-g="month">按月</button><button data-g="year">按年</button></span></span></div>
       <div class="card-b"><div class="chart" id="chartCty"></div></div></div>
-    <div class="card"><div class="card-h"><span>美国 / 非美国拆分明细</span>
+    <div class="card"><div class="card-h"><span>United States / Non-US 拆分明细</span>
       <button class="btn xs" data-export="m5b">⇩ 导出</button></div>
       <div class="card-b tbl-scroll" id="m5bWrap"></div></div>
     <div class="card"><div class="card-h"><span>国家对比明细</span>
@@ -1390,8 +1391,9 @@ var ctyTrendA=US_KEY,ctyTrendB='非美国',ctyTrendM='spend';/* 对比地区与�
 /* 地区聚合：'非美国'=全部国家合计−美国（特殊键），其余=单国家 */
 function ctyAgg(o,nm){if(nm==='非美国'){var m=zero();Object.keys(o).forEach(function(k){if(k!==US_KEY)addM(m,o[k])});return m}
  return o[nm]||zero()}
-function ctyAggDay(d,nm){return ctyAgg(aggDimDate(d,'country'),nm)}
-function ctyLbl(nm){return nm===US_KEY?'美国':nm}
+function ctyAggDay(d,nm){if(nm==='Non-US')nm='非美国';else if(nm===ctyLbl(US_KEY))nm=US_KEY;/* 显示名→内部键归一 */
+ return ctyAgg(aggDimDate(d,'country'),nm)}
+function ctyLbl(nm){return nm===US_KEY?'United States':(nm==='非美国'?'Non-US':nm)}
 function renderM5T(){
  var def=CTY_TREND_METRICS.filter(function(x){return x.k===ctyTrendM})[0]||CTY_TREND_METRICS[0];
  I('ctyTrendTitle').textContent=def.name+'趋势对比';
@@ -1409,22 +1411,22 @@ function renderM5T(){
     '<span style="float:right;margin-left:24px;font-weight:600">'+(v==null?'—':def.fmt(v))+'</span></div>'});return h}},
   legend:{data:labels,top:0},grid:{left:56,right:20,top:30,bottom:26},
   xAxis:{type:'category',data:order},yAxis:{type:'value',scale:true},series:series},true)}
-/* 美国/非美国拆分明细：固定两行（美国/非美国）不排序；总计行=两行之和=大盘全部国家 */
+/* United States / Non-US 拆分明细：固定两行（显示名走 ctyLbl 英文）不排序；总计行=两行之和=大盘全部国家 */
 var M5B_COLS=STD_COLS.slice();M5B_COLS.splice(1,0,{k:'spend_pct',name:'花费占比',fmt:fmtPct});/* 占比列紧跟花费 */
 function renderM5B(cAgg){
- var rows=[{label:'美国',m:cAgg[US_KEY]||zero()},{label:'非美国',m:ctyAgg(cAgg,'非美国')}];
+ var rows=[{label:ctyLbl(US_KEY),m:cAgg[US_KEY]||zero()},{label:ctyLbl('非美国'),m:ctyAgg(cAgg,'非美国')}];
  var tot=rows[0].m.spend+rows[1].m.spend;
  rows.forEach(function(r){r.m.spendPct=tot?r.m.spend/tot:NaN});/* 占比挂行对象，derive 透传 spend_pct（缓存引用幂等） */
  withCmps(rows,function(r,i,rg){var o=aggDimRange(rg.start,rg.end,'country');
-  var u=o[US_KEY]||zero(),t=ctyAgg(o,'非美国'),m=r.label==='美国'?u:t;
+  var u=o[US_KEY]||zero(),t=ctyAgg(o,'非美国'),m=r.label===ctyLbl(US_KEY)?u:t;
   var tt=u.spend+t.spend;if(tt)m.spendPct=m.spend/tt;return m});
- regTable('m5b','美国 / 非美国拆分明细','分类',rows,{sortCol:null,cols:M5B_COLS,
+ regTable('m5b','United States / Non-US 拆分明细','分类',rows,{sortCol:null,cols:M5B_COLS,
   gmap:[['投放规模','g0',['spend','spend_pct','impressions','clicks','orders','value']],
         ['流量效率','g1',['cpm','cpc','ctr']],['转化效果','g2',['cvr','cpa_atc','cpa_ckt','cpa_ord']],
         ['投产回报','g3',['roas','aov']]],
   dayFn:function(r,d){return ctyAggDay(d,r.label)}})}
 
-/* 趋势卡下拉初始化：指标 12 项单选；地区选项=非美国特殊项+全部国家（USA 下拉显示名映射「美国」） */
+/* 趋势卡下拉初始化：指标 12 项单选；地区选项=非美国特殊项+全部国家（下拉显示名走 ctyLbl：United States/Non-US） */
 function initCtyTrend(){
  I('ctyTrendMetric').innerHTML=CTY_TREND_METRICS.map(function(x){
   return '<option value="'+x.k+'"'+(x.k===ctyTrendM?' selected':'')+'>'+x.name+'</option>'}).join('');
