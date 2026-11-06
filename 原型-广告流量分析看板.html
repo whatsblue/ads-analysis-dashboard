@@ -1213,7 +1213,7 @@ function renderM1(){
   data:bk.rows.map(function(m){return +m.spend.toFixed(2)})}]),true);
  var rows=[{label:state.start+' ~ '+state.end,m:all}];
  withCmps(rows,function(r,i,rg){return aggTotRange(rg.start,rg.end)});
- regTable('m1','大盘明细','日期',rows,{dateInline:true,dayFn:function(r,d){return aggTotDate(d)}})}
+ regTable('m1','大盘明细','日期',rows,{noPct:true,dateInline:true,dayFn:function(r,d){return aggTotDate(d)}})}
 /* ================= Meta · 账号定位 ================= */
 /* 账号排行明细列（2026-11-06）：花费/订单/转化价值 后各插占比列；分母=Meta 全部账号合计（不受账号筛选影响），总计=Σ占比=100% */
 var M2A_COLS=STD_COLS.slice();
@@ -1615,7 +1615,7 @@ function renderGm1(){
  I('gm1Kpis').innerHTML=kh;
  var rows=[{label:state.start+' ~ '+state.end,m:all}];
  withCmps(rows,function(r,i,rg){return gTotRange(rg.start,rg.end)});
- regTable('gm1','大盘明细','日期',rows,{mode:'g',cols:G_CMP_COLS,dateInline:true,dayFn:function(r,d){return gTotDate(d)}})}
+ regTable('gm1','大盘明细','日期',rows,{noPct:true,mode:'g',cols:G_CMP_COLS,dateInline:true,dayFn:function(r,d){return gTotDate(d)}})}
 function renderGm2(){
  var rows=ACC_G.map(function(a){return{label:a,m:gSplitRange(gAccDate,a,state.start,state.end)}})
   .sort(function(x,y){return y.m.spend-x.m.spend});
