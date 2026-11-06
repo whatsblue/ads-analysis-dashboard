@@ -223,7 +223,9 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
 .cty-opt:hover{background:#f2f6ff}
 .cty-opt.on{background:#e8f0fe;color:var(--pri);font-weight:600}
 /* 环比值 hover 归因浮层（2026-11-06）：大盘三表环比格显示五维度 Top3 对象 */
-#attrTip{position:fixed;z-index:9999;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 28px rgba(16,42,86,.16);padding:10px 12px;font-size:12px;display:none;min-width:230px;max-width:300px;pointer-events:none}
+#attrTip{position:fixed;z-index:9999;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 28px rgba(16,42,86,.16);padding:10px 12px;font-size:12px;display:none;min-width:230px;max-width:300px}
+#attrTip .at-lk{cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+#attrTip .at-lk:hover{color:var(--pri)}
 #attrTip .at-t{font-weight:700;color:var(--txt);margin-bottom:2px}
 #attrTip .at-sub{color:var(--sub);font-size:11px;margin-bottom:2px}
 #attrTip .at-h{color:var(--pri);font-weight:600;font-size:11.5px;margin:7px 0 1px}
@@ -1545,7 +1547,9 @@ function attrDims(ch,k,dir,s,e,ps,pe){
   dims.push(top('年龄段',AGES.map(function(kk){return[kk,gSplitRange(gAgeDate,kk,s,e),gSplitRange(gAgeDate,kk,ps,pe)]})));
  }
  return dims}
-function hideAttr(){var t=document.getElementById('attrTip');if(t)t.style.display='none'}
+function hideAttr(){clearTimeout(attrHideT);var t=document.getElementById('attrTip');if(t)t.style.display='none'}
+function attrHideLater(){clearTimeout(attrHideT);attrHideT=setTimeout(hideAttr,150)}/* 延迟隐藏缓冲：鼠标移向浮层点击跳转途中不闪没（2026-11-06） */
+var ATTR_JUMP={meta:{账号:'m2',商品:'m3',素材类型:'m4',国家:'m5',年龄段:'m6'},google:{账号:'gm2',商品:'gm3',素材类型:'g1',国家:'g2',年龄段:'gm6'}};/* 维度对象点击跳转映射：账号/商品/素材类型/国家/年龄段→对应渠道模块页签 */
 function showAttr(td,tr){
  var hk=td.getAttribute('data-hk'),dir=td.getAttribute('data-dir');
  var tid=tr.getAttribute('data-tid'),rk=tr.getAttribute('data-rk')||'';
@@ -1557,28 +1561,40 @@ function showAttr(td,tr){
  if(!dims)h+='<div class="at-empty">该渠道无细分维度拆分数据</div>';
  else dims.forEach(function(d){
   h+='<div class="at-h">'+d.name+'</div>';
+  var jt=(ATTR_JUMP[ch]||{})[d.name]||'';
   if(!d.items.length)h+='<div class="at-empty">无有效环比对象（上期基数为 0 不参与）</div>';
-  else d.items.forEach(function(it){h+='<div class="at-r"><b title="'+esc(it.n)+'">'+esc(it.n)+'</b>'+deltaHtml(it.vn,it.vp)+'</div>'})});
+  else d.items.forEach(function(it){h+='<div class="at-r">'+(jt?'<b class="at-lk" data-jt="'+jt+'" data-lv="'+ch+'" title="点击查看对应看板">'+esc(it.n)+'</b>':'<b title="'+esc(it.n)+'">'+esc(it.n)+'</b>')+deltaHtml(it.vn,it.vp)+'</div>'})});
  var t=document.getElementById('attrTip');
- if(!t){t=document.createElement('div');t.id='attrTip';document.body.appendChild(t)}
+ if(!t){t=document.createElement('div');t.id='attrTip';document.body.appendChild(t);t.addEventListener('mouseenter',function(){clearTimeout(attrHideT)})}
  t.innerHTML=h;t.style.display='block';
  var r=td.getBoundingClientRect(),tw=t.offsetWidth,th=t.offsetHeight,left=r.right+10,top=r.bottom+8;
  if(left+tw>window.innerWidth-8)left=r.left-tw-10;
  if(top+th>window.innerHeight-8)top=r.top-th-8;
  if(left<8)left=8;if(top<8)top=8;
  t.style.left=left+'px';t.style.top=top+'px'}
-var attrTd=null;
+var attrTd=null,attrHideT=null;
 document.addEventListener('mouseover',function(ev){
  if(!ev.target||!ev.target.closest)return;
+ if(ev.target.closest('#attrTip'))return;/* 浮层内部移动不重触发（鼠标可移入浮层点击跳转，2026-11-06） */
  var td=ev.target.closest('tr.cmp-delta td[data-hk]');
- if(td===attrTd)return;
+ if(td===attrTd){clearTimeout(attrHideT);return}
  attrTd=td||null;
- if(!td){hideAttr();return}
+ if(!td){attrHideLater();return}
+ clearTimeout(attrHideT);
  var tr=td.parentNode;
- if(!tr||!ATTR_TIDS[tr.getAttribute('data-tid')]){hideAttr();return}
- if(td.getAttribute('data-dir')==='flat'||td.getAttribute('data-hk').indexOf('_pct')>=0){hideAttr();return}
+ if(!tr||!ATTR_TIDS[tr.getAttribute('data-tid')]){attrHideLater();return}
+ if(td.getAttribute('data-dir')==='flat'||td.getAttribute('data-hk').indexOf('_pct')>=0){attrHideLater();return}
  showAttr(td,tr)});
 document.addEventListener('scroll',hideAttr,true);
+/* 浮层对象点击→跳转对应渠道模块页签（复用页签按钮 click 链：先 lv1 渠道再模块 tab） */
+document.addEventListener('click',function(ev){
+ if(!ev.target||!ev.target.closest)return;
+ var lk=ev.target.closest('#attrTip .at-lk');
+ if(!lk)return;
+ var lv=lk.getAttribute('data-lv'),jt=lk.getAttribute('data-jt');
+ var b1=lv&&document.querySelector('[data-lv1="'+lv+'"]');if(b1)b1.click();
+ var b2=jt&&document.querySelector('.tab-btn[data-tab="'+jt+'"]');if(b2)b2.click();
+ hideAttr()});
 
 /* ================= Meta · 年龄维度 ================= */
 function renderM6(){
