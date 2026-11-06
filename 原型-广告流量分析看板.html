@@ -214,7 +214,7 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
 .acc-list{flex:1;padding-left:6px;max-height:260px;overflow:auto}
 /* 迷你粒度切换 */
 .seg.mini button{padding:2px 9px;font-size:11px}
-/* 明细表卡头「开启占比」开关（勾选=显示花费/订单/转化价值占比三列，分母=表总计，总计行=100%） */
+/* 明细表卡头「显示占比」开关（勾选=显示花费/订单/转化价值占比三列，分母=表总计，总计行=100%） */
 .pct-tgl{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--sub);cursor:pointer;white-space:nowrap;user-select:none;margin-left:auto;margin-right:10px}
 .pct-tgl input{accent-color:#2563eb;cursor:pointer;margin:0}
 /* 趋势卡三下拉已换看板同款 .dd 组件（原生 select 弹层无法样式化）：按钮自动继承 .dd>button 样式，面板白底圆角阴影 */
@@ -863,9 +863,9 @@ function regTable(id,title,firstCol,rows,opt){opt=opt||{};
   sortCol:('sortCol' in opt)?opt.sortCol:'spend',sortDir:opt.sortDir||'desc',limit:10,tips:opt.tips||null,gmap:opt.gmap||null,totalRows:opt.totalRows||null,noTotal:!!opt.noTotal,gTips:!!opt.gTips,noPct:!!opt.noPct,pctOn:!opt.noPct&&!!PCT_DEF[id],
   expOf:opt.expOf||null,expKey:opt.expKey||null,expanded:{}};/* 展开行组：expOf(r)=成员明细行[{label,m}]，expanded[expKey(r)]=展开态（排序/加载更多保持，重查询重置） */
  drawTable(id);
- if(!tables[id].noPct)ensurePctToggle(id)}/* 卡头注入「开启占比」开关（排除表除外） */
+ if(!tables[id].noPct)ensurePctToggle(id)}/* 卡头注入「显示占比」开关（排除表除外） */
 function colsOf(t){return t.cols||(t.mode==='g'?G_COLS:STD_COLS)}
-/* ===== 开启占比（2026-11-06 全站明细表定版）：卡头勾选→显示花费/订单/转化价值占比三列，分母=所在表总计（totalRows||主行合计），总计行 Σ=100%；环比行挂上期同集合占比 ===== */
+/* ===== 显示占比（2026-11-06 全站明细表定版）：卡头勾选→显示花费/订单/转化价值占比三列，分母=所在表总计（totalRows||主行合计），总计行 Σ=100%；环比行挂上期同集合占比 ===== */
 var PCT_DEF={m2a:1,m5:1,m5b:1};/* 默认勾选表（此前已定版常显占比的三表），其余默认关闭 */
 var PCT_COLS={spend_pct:{k:'spend_pct',name:'花费占比',fmt:fmtPct},orders_pct:{k:'orders_pct',name:'订单占比',fmt:fmtPct},value_pct:{k:'value_pct',name:'转化价值占比',fmt:fmtPct}};
 function buildCols(t){/* 占比列先一律剔除（自定义 cols 表关闭开关同样隐藏），开启时再跟随主键注入；转化价值占比注入点=value（Meta）或 vs（Google 双口径表）；返回新数组不改原共享定义 */
@@ -882,14 +882,14 @@ function buildCols(t){/* 占比列先一律剔除（自定义 cols 表关闭开�
    if(k==='spend')cs.push('spend_pct');if(k==='orders')cs.push('orders_pct');
    if(k==='value'||k==='vs')cs.push('value_pct')});g[2]=cs})}
  return{cols:cols,gmap:gmap}}
-function ensurePctToggle(id){/* 卡头导出按钮左侧注入「开启占比」checkbox（一次） */
+function ensurePctToggle(id){/* 卡头导出按钮左侧注入「显示占比」checkbox（一次） */
  var wrap=I(id+'Wrap');if(!wrap)return;
  var card=wrap.parentNode;while(card&&(' '+card.className+' ').indexOf(' card ')<0)card=card.parentNode;
  if(!card)return;
  var btn=card.querySelector('[data-export="'+id+'"]');if(!btn)return;
  if(btn.parentNode.querySelector('.pct-tgl'))return;
  var lab=document.createElement('label');lab.className='pct-tgl';lab.title='勾选后展示花费占比、订单占比、转化价值占比（分母=本表总计，总计=100%）';
- lab.innerHTML='<input type="checkbox"'+(tables[id].pctOn?' checked':'')+'>开启占比';
+ lab.innerHTML='<input type="checkbox"'+(tables[id].pctOn?' checked':'')+'>显示占比';
  if((btn.getAttribute('style')||'').indexOf('auto')>=0)btn.style.marginLeft='';
  btn.parentNode.insertBefore(lab,btn);
  lab.firstChild.addEventListener('change',function(){tables[id].pctOn=this.checked;drawTable(id)})}
@@ -920,7 +920,7 @@ var TH_TIP={spend:{std:'已花费金额(USD)：Meta Ads 后台',g:'已花费金�
  roas_s:{std:'',g:'ROAS＝Shopify 归因收入÷花费（考核口径）'},
  roas_a:{std:'',g:'ROAS＝Ads 后台转化价值÷花费（投放参考）'}};
 function drawTable(id){var t=tables[id],wrap=I(id+'Wrap');if(!wrap)return;
- /* 开启占比通用挂载（先于 sortedRows 派生，首绘即有值）：主行与总计行分母=表总计（totalRows||主行合计，筛选/加载更多口径一致）；环比行分母=环比集合合计；展开成员行相对表总计（t._den）；挂载对同表确定性幂等，m5/m5b 行已克隆隔离缓存交叉 */
+ /* 显示占比通用挂载（先于 sortedRows 派生，首绘即有值）：主行与总计行分母=表总计（totalRows||主行合计，筛选/加载更多口径一致）；环比行分母=环比集合合计；展开成员行相对表总计（t._den）；挂载对同表确定性幂等，m5/m5b 行已克隆隔离缓存交叉 */
  if(t.pctOn){
   var tAllP=t.totalRows&&t.totalRows.length?t.totalRows:t.rows;
   var denS=0,denO=0,denV=0;tAllP.forEach(function(r){denS+=r.m.spend||0;denO+=r.m.orders||0;denV+=r.m.value||0});
@@ -1021,7 +1021,7 @@ window.addEventListener('scroll',thTipHide,true);
 var expCtx={id:null,cols:[],sel:[]};
 function expColNames(t){var a=[t.firstCol];if(t.pre)t.pre.forEach(function(p){a.push(p.name)});
  if(!t.day&&!t.dateInline)a.push('日期');
- buildCols(t).cols.forEach(function(c){a.push(c.name)});return a}/* 开启占比时导出列含三占比 */
+ buildCols(t).cols.forEach(function(c){a.push(c.name)});return a}/* 显示占比时导出列含三占比 */
 function openExp(id){var t=tables[id];if(!t)return;
  expCtx.id=id;expCtx.cols=expColNames(t);expCtx.sel=expCtx.cols.slice();
  I('expTitle').textContent='导出 · '+t.title;drawExpList();I('expModal').classList.add('on')}
