@@ -1533,7 +1533,9 @@ function attrDims(ch,k,dir,s,e,ps,pe){
   dims.push(top('账号',ACCOUNTS.filter(accOK).map(function(a){return[a,aggOneAcc(a,s,e),aggOneAcc(a,ps,pe)]})));
   var DIMC={spu:'商品',type:'素材类型',country:'国家',age:'年龄段'};
   Object.keys(DIMC).forEach(function(dim){var now=aggDimRange(s,e,dim),pv=aggDimRange(ps,pe,dim);
-   dims.push(top(DIMC[dim],Object.keys(now).map(function(kk){return[disp(dim,kk),now[kk],pv[kk]||zero()]})))});
+   var ks=Object.keys(now);
+   if(dim==='type')ks=TYPES.map(function(t){return t.code});/* ctype 桶混装 Google 类型键（DEMAND_GEN/SHOPPING 等），枚举限定 Meta 类型枚举对齐素材类型明细表（2026-11-06 用户反馈修复：Meta hover 仅显示对应渠道对象） */
+   dims.push(top(DIMC[dim],ks.map(function(kk){return[disp(dim,kk),now[kk]||zero(),pv[kk]||zero()]})))});
  }else if(ch==='google'){
   dims.push(top('账号',ACC_G.map(function(a){return[a,gSplitRange(gAccDate,a,s,e),gSplitRange(gAccDate,a,ps,pe)]})));
   dims.push(top('商品',G_SPUS.map(function(kk){return[kk,gSplitRange(gSpuDate,kk,s,e),gSplitRange(gSpuDate,kk,ps,pe)]})));
