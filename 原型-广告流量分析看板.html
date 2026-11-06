@@ -222,6 +222,14 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
 .cty-opt{padding:6px 10px;font-size:12.5px;border-radius:5px;cursor:pointer;white-space:nowrap}
 .cty-opt:hover{background:#f2f6ff}
 .cty-opt.on{background:#e8f0fe;color:var(--pri);font-weight:600}
+/* 环比值 hover 归因浮层（2026-11-06）：大盘三表环比格显示五维度 Top3 对象 */
+#attrTip{position:fixed;z-index:9999;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 28px rgba(16,42,86,.16);padding:10px 12px;font-size:12px;display:none;min-width:230px;max-width:300px;pointer-events:none}
+#attrTip .at-t{font-weight:700;color:var(--txt);margin-bottom:2px}
+#attrTip .at-sub{color:var(--sub);font-size:11px;margin-bottom:2px}
+#attrTip .at-h{color:var(--pri);font-weight:600;font-size:11.5px;margin:7px 0 1px}
+#attrTip .at-r{display:flex;justify-content:space-between;align-items:center;gap:12px;line-height:1.8}
+#attrTip .at-r b{font-weight:400;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:170px}
+#attrTip .at-empty{color:var(--sub);font-size:11.5px}
 /* 导出列表拖拽 */
 .exp-list .er{cursor:grab}
 .exp-list .er.dragging{opacity:.45;background:#eef4ff}
@@ -975,11 +983,13 @@ function drawTable(id){var t=tables[id],wrap=I(id+'Wrap');if(!wrap)return;
     rowCells(t,cols,deriveRow(t,x.m)).forEach(function(v){h+='<td>'+v+'</td>'});h+='</tr>'})}
   if(state.cmpOn&&o.r.cmps)o.r.cmps.forEach(function(cm){var cd=deriveRow(t,cm.m);
    oneRow(t.day?cm.day:'',t.day?'':cm.start+' ~ '+cm.end,cd,'cmp-d');
-   h+='<tr class="cmp-delta"><td>'+((t.day||t.dateInline)?'环比':'')+'</td>';
+   h+='<tr class="cmp-delta" data-tid="'+id+'" data-rk="'+esc(String(o.r.ch||o.r.label||''))+'" data-cs="'+cm.start+'" data-ce="'+cm.end+'"><td>'+((t.day||t.dateInline)?'环比':'')+'</td>';
    if(t.pre)t.pre.forEach(function(){h+='<td></td>'});
    if(!t.day&&!t.dateInline)h+='<td>环比</td>';
    cols.forEach(function(c){var hl=!t.noHl&&t.mode!=='g'&&HL_CMP[c.k]&&cmpHL((o.d||{})[c.k],(cd||{})[c.k],HL_TH[c.k]);/* Google 全部明细表去除环比底色高亮（2026-11-06 定版：mode:'g' 或表级 noHl）；钱效率组 5%/流量效率组 10% 分档（2026-11-06 二次定版），环比箭头色保留 */
-    h+='<td'+(hl?' class="hl-cmp"':'')+'>'+deltaHtml((o.d||{})[c.k],(cd||{})[c.k],c.k)+'</td>'});h+='</tr>'})});
+    var acur=(o.d||{})[c.k],apv=cd[c.k];
+    var adir=(acur==null||apv==null||isNaN(acur)||isNaN(apv)||!apv||acur===apv)?'flat':acur>apv?'up':'down';/* 环比值 hover 归因方向（2026-11-06）：大盘三表环比格 hover 展示五维度 Top3 */
+    h+='<td'+(hl?' class="hl-cmp"':'')+' data-hk="'+c.k+'" data-dir="'+adir+'">'+deltaHtml((o.d||{})[c.k],(cd||{})[c.k],c.k)+'</td>'});h+='</tr>'})});
  if(more)h+='<tr><td colspan="'+ncol+'" class="more-wrap"><button data-more="'+id+'">加载更多（共 '+rows.length+' 行，已显示 '+t.limit+'）</button></td></tr>';
  /* 总计行：全量行指标求和后重算比率列（同观远表格总计：sum 型求和、比率=Σ分子/Σ分母）；首列统一显示「总计」；noTotal 表除外（如 Google SPU 排行：SPU 表行级拆分致展示/点击重复计，合计无业务意义，观远亦无总计） */
  if(!t.day&&!t.noTotal){
@@ -1506,6 +1516,67 @@ function initCtyTrend(){
   opts.map(function(o){return{v:o,n:ctyLbl(o)}}),
   function(){return ctyTrendB},function(v){ctyTrendB=v})}
 initCtyTrend();
+/* ================= 环比值 hover 归因（2026-11-06）：大盘三表（ca 渠道对比/m1/gm1 大盘明细）环比格 hover 展示 账号/商品/素材类型/国家/年龄段 五维度 Top3 对象及其环比值；增长取涨幅最大三项、下降取降幅最大三项；上期基数为 0 的对象不参与排序 ================= */
+var ATTR_TIDS={ca:1,m1:1,gm1:1};
+var ATTR_KN={impressions:'展示',vs:'转化价值(Shopify)',va:'转化价值(Google)',roas_s:'ROAS(Shopify)',roas_a:'ROAS(Google)',inter:'全部点击',atc:'加购',ckt:'发起结帐'};
+function attrKName(k){return COL_NAME[k]||ATTR_KN[k]||k}
+function attrZG(){return{spend:0,impressions:0,clicks:0,orders:0,vs:0,va:0,value:0}}
+function attrDims(ch,k,dir,s,e,ps,pe){
+ var DF=ch==='google'?deriveG:derive;
+ function top(name,pairs){var arr=pairs.map(function(p){var a=DF(p[1])[k],b=DF(p[2])[k];
+  return{n:p[0],vn:a,vp:b,dv:(a==null||isNaN(a)||b==null||isNaN(b)||!b)?null:(a-b)/b*100}}).filter(function(x){return x.dv!=null});
+  arr.sort(function(x,y){return dir>0?y.dv-x.dv:x.dv-y.dv});
+  return{name:name,items:arr.slice(0,3)}}
+ function disp(dim,kk){if(dim==='country')return ctyLbl(kk);if(dim==='type')return TYPE_NAME[kk]||kk;return kk}
+ var dims=[];
+ if(ch==='meta'){
+  dims.push(top('账号',ACCOUNTS.filter(accOK).map(function(a){return[a,aggOneAcc(a,s,e),aggOneAcc(a,ps,pe)]})));
+  var DIMC={spu:'商品',type:'素材类型',country:'国家',age:'年龄段'};
+  Object.keys(DIMC).forEach(function(dim){var now=aggDimRange(s,e,dim),pv=aggDimRange(ps,pe,dim);
+   dims.push(top(DIMC[dim],Object.keys(now).map(function(kk){return[disp(dim,kk),now[kk],pv[kk]||zero()]})))});
+ }else if(ch==='google'){
+  dims.push(top('账号',ACC_G.map(function(a){return[a,gSplitRange(gAccDate,a,s,e),gSplitRange(gAccDate,a,ps,pe)]})));
+  dims.push(top('商品',G_SPUS.map(function(kk){return[kk,gSplitRange(gSpuDate,kk,s,e),gSplitRange(gSpuDate,kk,ps,pe)]})));
+  var ta=gTypeAgg(s,e),tp=gTypeAgg(ps,pe);
+  dims.push(top('素材类型',Object.keys(ta).map(function(kk){return[G_TYPE_NAME[kk]||kk,ta[kk],tp[kk]||attrZG()]})));
+  dims.push(top('国家',Object.keys(G_CTY_W).map(function(kk){return[ctyLbl(kk),gCtyRange(kk,s,e),gCtyRange(kk,ps,pe)]})));
+  dims.push(top('年龄段',AGES.map(function(kk){return[kk,gSplitRange(gAgeDate,kk,s,e),gSplitRange(gAgeDate,kk,ps,pe)]})));
+ }
+ return dims}
+function hideAttr(){var t=document.getElementById('attrTip');if(t)t.style.display='none'}
+function showAttr(td,tr){
+ var hk=td.getAttribute('data-hk'),dir=td.getAttribute('data-dir');
+ var tid=tr.getAttribute('data-tid'),rk=tr.getAttribute('data-rk')||'';
+ var ch=tid==='m1'?'meta':tid==='gm1'?'google':(rk.indexOf('Meta')===0?'meta':rk.indexOf('Google')===0?'google':'edm');
+ var s=state.start,e=state.end,ps=tr.getAttribute('data-cs'),pe=tr.getAttribute('data-ce');
+ var dims=ch==='edm'?null:attrDims(ch,hk,dir==='up'?1:-1,s,e,ps,pe);
+ var h='<div class="at-t">'+attrKName(hk)+' · '+(dir==='up'?'环比增长':'环比下降')+' Top3</div>';
+ h+='<div class="at-sub">'+(ch==='meta'?'Meta':ch==='google'?'Google':'EDM')+'　环比期 '+ps+' ~ '+pe+'　本期 '+s+' ~ '+e+'</div>';
+ if(!dims)h+='<div class="at-empty">该渠道无细分维度拆分数据</div>';
+ else dims.forEach(function(d){
+  h+='<div class="at-h">'+d.name+'</div>';
+  if(!d.items.length)h+='<div class="at-empty">无有效环比对象（上期基数为 0 不参与）</div>';
+  else d.items.forEach(function(it){h+='<div class="at-r"><b title="'+esc(it.n)+'">'+esc(it.n)+'</b>'+deltaHtml(it.vn,it.vp)+'</div>'})});
+ var t=document.getElementById('attrTip');
+ if(!t){t=document.createElement('div');t.id='attrTip';document.body.appendChild(t)}
+ t.innerHTML=h;t.style.display='block';
+ var r=td.getBoundingClientRect(),tw=t.offsetWidth,th=t.offsetHeight,left=r.right+10,top=r.bottom+8;
+ if(left+tw>window.innerWidth-8)left=r.left-tw-10;
+ if(top+th>window.innerHeight-8)top=r.top-th-8;
+ if(left<8)left=8;if(top<8)top=8;
+ t.style.left=left+'px';t.style.top=top+'px'}
+var attrTd=null;
+document.addEventListener('mouseover',function(ev){
+ if(!ev.target||!ev.target.closest)return;
+ var td=ev.target.closest('tr.cmp-delta td[data-hk]');
+ if(td===attrTd)return;
+ attrTd=td||null;
+ if(!td){hideAttr();return}
+ var tr=td.parentNode;
+ if(!tr||!ATTR_TIDS[tr.getAttribute('data-tid')]){hideAttr();return}
+ if(td.getAttribute('data-dir')==='flat'||td.getAttribute('data-hk').indexOf('_pct')>=0){hideAttr();return}
+ showAttr(td,tr)});
+document.addEventListener('scroll',hideAttr,true);
 
 /* ================= Meta · 年龄维度 ================= */
 function renderM6(){
