@@ -392,7 +392,7 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
       <div class="card-b tbl-scroll" id="m4aWrap"></div></div>
 <div class="card"><div class="card-h">素材子分类明细
       <span class="seg mini" id="m4SubTabs" style="margin-left:12px"><button data-st="kol" class="on">红人素材</button><button data-st="xsp">视频广告</button><button data-st="xph">图片广告</button></span></div>
-      <div class="card-h" style="padding-top:4px"><span id="m4sub1Title">红人素材类型分类明细</span>
+      <div class="card-h" style="padding-top:4px"><span id="m4sub1Title">红人素材分类明细</span>
       <button class="btn xs" data-export="m4sub" style="margin-left:auto">⇩ 导出</button></div>
       <div class="card-b tbl-scroll" id="m4subWrap"></div>
       <div class="card-h" style="border-top:1px solid var(--line)"><span id="m4sub2Title">红人付费分类明细</span>
@@ -1350,7 +1350,7 @@ function renderTop(){
    其余（含 KOL 无图视/不含 KOL）→其他；视频·图片广告→含「AI」→AI，否则非AI
    真实模式数据源=RD.sub 全量素材分桶（抽取侧同规则 SQL 聚合，无 Top3000 截断），合计=素材类型明细 */
 var SUB_DEFS=[
- {key:'kol',name:'红人素材',t1:'红人素材类型分类明细',types:['红人素材','KOL'],order:['图片','视频','其他'],
+ {key:'kol',name:'红人素材',t1:'红人素材分类明细',types:['红人素材','KOL'],order:['图片','视频','其他'],
   split:function(nm){if(nm.indexOf('KOL')<0)return'其他';if(nm.indexOf('图片')>=0)return'图片';if(nm.indexOf('视频')>=0)return'视频';return'其他'}},
  {key:'xsp',name:'视频广告',t1:'视频是否AI分类明细',types:['视频广告','XSP'],order:['AI','非AI'],
   split:function(nm){return nm.indexOf('AI')>=0?'AI':'非AI'}},
