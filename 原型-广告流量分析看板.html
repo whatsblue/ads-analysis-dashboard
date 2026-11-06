@@ -1524,7 +1524,7 @@ function attrZG(){return{spend:0,impressions:0,clicks:0,orders:0,vs:0,va:0,value
 function attrDims(ch,k,dir,s,e,ps,pe){
  var DF=ch==='google'?deriveG:derive;
  function top(name,pairs){var arr=pairs.map(function(p){var a=DF(p[1])[k],b=DF(p[2])[k];
-  return{n:p[0],vn:a,vp:b,dv:(a==null||isNaN(a)||b==null||isNaN(b)||!b)?null:(a-b)/b*100}}).filter(function(x){return x.dv!=null});
+  return{n:p[0],vn:a,vp:b,dv:(a==null||isNaN(a)||b==null||isNaN(b)||!b)?null:(a-b)/b*100}}).filter(function(x){return x.dv!=null&&!/^unknown$/i.test(x.n)});/* unknown 对象（年龄段 Unknown/素材类型 unknown）不参与排行（2026-11-06 用户定版） */
   arr.sort(function(x,y){return dir>0?y.dv-x.dv:x.dv-y.dv});
   return{name:name,items:arr.slice(0,3)}}
  function disp(dim,kk){if(dim==='country')return ctyLbl(kk);if(dim==='type')return TYPE_NAME[kk]||kk;return kk}
