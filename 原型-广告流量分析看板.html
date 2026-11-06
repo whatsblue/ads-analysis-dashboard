@@ -860,7 +860,7 @@ function trendOption(bk,barSeries,objs){var roas=bk.rows.map(function(m){return 
 var tables={};
 function regTable(id,title,firstCol,rows,opt){opt=opt||{};
  tables[id]={id:id,title:title,firstCol:firstCol,rows:rows,mode:opt.mode||'std',day:!!opt.day,dateInline:!!opt.dateInline,linkFirst:!!opt.linkFirst,firstTip:opt.firstTip||null,pre:opt.pre||null,cols:opt.cols||null,
-  sortCol:('sortCol' in opt)?opt.sortCol:'spend',sortDir:opt.sortDir||'desc',limit:10,tips:opt.tips||null,gmap:opt.gmap||null,totalRows:opt.totalRows||null,noTotal:!!opt.noTotal,gTips:!!opt.gTips,noPct:!!opt.noPct,pctOn:!opt.noPct&&(tables[id]?tables[id].pctOn:!!PCT_DEF[id]),/* pctOn 沿用既有状态（2026-11-06 定版：tab 切换/筛选重渲染不丢勾选，点击关闭才隐藏） */
+  sortCol:('sortCol' in opt)?opt.sortCol:'spend',sortDir:opt.sortDir||'desc',limit:10,tips:opt.tips||null,gmap:opt.gmap||null,totalRows:opt.totalRows||null,noTotal:!!opt.noTotal,gTips:!!opt.gTips,noHl:!!opt.noHl,noPct:!!opt.noPct,pctOn:!opt.noPct&&(tables[id]?tables[id].pctOn:!!PCT_DEF[id]),/* pctOn 沿用既有状态（2026-11-06 定版：tab 切换/筛选重渲染不丢勾选，点击关闭才隐藏） */
   expOf:opt.expOf||null,expKey:opt.expKey||null,expanded:{}};/* 展开行组：expOf(r)=成员明细行[{label,m}]，expanded[expKey(r)]=展开态（排序/加载更多保持，重查询重置） */
  drawTable(id);
  if(!tables[id].noPct)ensurePctToggle(id)}/* 卡头注入「显示占比」开关（排除表除外） */
@@ -977,7 +977,7 @@ function drawTable(id){var t=tables[id],wrap=I(id+'Wrap');if(!wrap)return;
    h+='<tr class="cmp-delta"><td>'+((t.day||t.dateInline)?'环比':'')+'</td>';
    if(t.pre)t.pre.forEach(function(){h+='<td></td>'});
    if(!t.day&&!t.dateInline)h+='<td>环比</td>';
-   cols.forEach(function(c){var hl=HL_CMP[c.k]&&cmpHL((o.d||{})[c.k],(cd||{})[c.k]);
+   cols.forEach(function(c){var hl=!t.noHl&&t.mode!=='g'&&HL_CMP[c.k]&&cmpHL((o.d||{})[c.k],(cd||{})[c.k]);/* Google 全部明细表去除环比底色高亮（2026-11-06 定版：mode:'g' 或表级 noHl），环比箭头色保留 */
     h+='<td'+(hl?' class="hl-cmp"':'')+'>'+deltaHtml((o.d||{})[c.k],(cd||{})[c.k],c.k)+'</td>'});h+='</tr>'})});
  if(more)h+='<tr><td colspan="'+ncol+'" class="more-wrap"><button data-more="'+id+'">加载更多（共 '+rows.length+' 行，已显示 '+t.limit+'）</button></td></tr>';
  /* 总计行：全量行指标求和后重算比率列（同观远表格总计：sum 型求和、比率=Σ分子/Σ分母）；首列统一显示「总计」；noTotal 表除外（如 Google SPU 排行：SPU 表行级拆分致展示/点击重复计，合计无业务意义，观远亦无总计） */
@@ -1633,7 +1633,7 @@ function renderGm3(){
  var keys=pickKeys(gSpuSel,ddExcl.gSpu,G_SPUS)||top.slice(0,6);
  var rows=keys.map(function(k){return{label:k,m:gSplitRange(gSpuDate,k,state.start,state.end)}});
  withCmps(rows,function(r,i,rg){return gSplitRange(gSpuDate,r.label,rg.start,rg.end)});
- regTable('gm3','SPU 排行','SPU',rows,{cols:G_SPU_COLS,gTips:true,noTotal:true,
+ regTable('gm3','SPU 排行','SPU',rows,{cols:G_SPU_COLS,gTips:true,noTotal:true,noHl:true,
   tips:{orders:'订单：Google Ads 平台转化（platform_orders）',value:'转化价值：Google Ads 平台回传（platform_conversion_value）',
    cpa_ord:'单次购买＝花费÷平台订单',roas:'ROAS＝平台转化价值÷花费',aov:'客单价＝平台转化价值÷平台订单',cvr:'CVR＝平台订单÷点击'},
   dayFn:function(r,d){return gSplitRange(gSpuDate,r.label,d,d)}})}
