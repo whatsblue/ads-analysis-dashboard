@@ -384,7 +384,7 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
     <div class="two">
       <div class="card"><div class="card-h">素材类型 ROAS 对比</div><div class="card-b"><div class="chart sm" id="chart4a"></div></div></div>
       <div class="card"><div class="card-h"><span>素材类型占比</span>
-        <span class="seg mini" data-tmet><button data-t="spend" class="on">花费</button><button data-t="orders">订单量</button><button data-t="value">购物转化价值</button></span></div>
+        <span class="seg mini" data-tmet><button data-t="spend" class="on">花费</button><button data-t="orders">订单</button><button data-t="value">购物转化价值</button></span></div>
         <div class="card-b"><div class="chart sm" id="chart4b"></div></div></div>
     </div>
     <div class="card"><div class="card-h">素材类型明细<span style="font-weight:400;color:var(--sub);font-size:11px;margin-left:8px">点击「素材类型」名称下钻查看该类型 Top 素材</span>
@@ -435,7 +435,7 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
     <div class="two">
       <div class="card"><div class="card-h">年龄段 ROAS 对比</div><div class="card-b"><div class="chart sm" id="chartM6a"></div></div></div>
       <div class="card"><div class="card-h"><span>年龄段占比</span>
-        <span class="seg mini" data-amet><button data-t="spend" class="on">花费</button><button data-t="orders">订单量</button><button data-t="value">购物转化价值</button></span></div>
+        <span class="seg mini" data-amet><button data-t="spend" class="on">花费</button><button data-t="orders">订单</button><button data-t="value">购物转化价值</button></span></div>
         <div class="card-b"><div class="chart sm" id="chartM6b"></div></div></div>
     </div>
     <div class="card"><div class="card-h">年龄段明细
@@ -506,7 +506,7 @@ tr.exp-row td{color:#41506a;background:#f4f7fa;font-size:11.5px}
     <div class="two">
       <div class="card"><div class="card-h">年龄段 ROAS 对比</div><div class="card-b"><div class="chart sm" id="chartG6a"></div></div></div>
       <div class="card"><div class="card-h"><span>年龄段占比</span>
-        <span class="seg mini" data-gamet><button data-t="spend" class="on">花费</button><button data-t="orders">订单量</button><button data-t="value">购物转化价值</button></span></div>
+        <span class="seg mini" data-gamet><button data-t="spend" class="on">花费</button><button data-t="orders">订单</button><button data-t="value">购物转化价值</button></span></div>
         <div class="card-b"><div class="chart sm" id="chartG6b"></div></div></div>
     </div>
     <div class="card"><div class="card-h">年龄段明细
@@ -1275,7 +1275,7 @@ function renderM3(){
 }
 /* ================= Meta · 素材效率 ================= */
 var typeSel=[];
-var typeMet='spend';/* 素材类型占比环形图指标（花费/订单量/购物转化价值，2026-11-05 定版） */
+var typeMet='spend';/* 素材类型占比环形图指标（花费/订单/购物转化价值，2026-11-05 定版） */
 var ageMet='spend',gAgeMet='spend';/* Meta/Google 年龄维度占比环形图指标（2026-11-06 定版，形式对齐素材效率） */
 /* 素材过滤：普通模式=白名单（空=全部）；排除模式=去掉所选 */
 function typeOK(t){return ddExcl.type?(typeSel.length>0&&typeSel.indexOf(t)<0):(!typeSel.length||typeSel.indexOf(t)>=0)}
