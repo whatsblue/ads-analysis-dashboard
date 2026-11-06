@@ -566,10 +566,11 @@ function fmtPct(v){return v==null||isNaN(v)?'—':(v*100).toFixed(2)+'%'}
 function fmtRoas(v){return v==null||isNaN(v)?'—':v.toFixed(2)}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
 /* 涨跌色：统一涨绿跌红 */
-/* 环比波动>5% 底色高亮的细分指标键（流量效率 cpm/cpc/ctr + 转化效果 cvr/cpa_* + 投产回报 roas/aov，含 Google 双口径 ROAS） */
-var HL_CMP={cvr:1,roas:1,aov:1,roas_s:1,roas_a:1};
-function cmpHL(cur,prev){if(prev==null||isNaN(prev)||!prev||cur==null||isNaN(cur))return false;
- return Math.abs((cur-prev)/prev*100)>5}
+/* 环比波动底色高亮的细分指标键：钱效率组（cvr/roas/aov 含 Google 双口径 roas_s/roas_a）>5%；2026-11-06 二次定版：Meta 流量效率组（cpm/cpc/ctr）>10% 加入（Google 表整体已在 hl 判定排除） */
+var HL_CMP={cvr:1,roas:1,aov:1,roas_s:1,roas_a:1,cpc:1,cpm:1,ctr:1};
+var HL_TH={cpc:10,cpm:10,ctr:10};/* 流量效率组阈值 10%，其余默认 5% */
+function cmpHL(cur,prev,th){if(prev==null||isNaN(prev)||!prev||cur==null||isNaN(cur))return false;
+ return Math.abs((cur-prev)/prev*100)>(th||5)}
 function deltaHtml(cur,prev,col){if(prev==null||isNaN(prev)||!prev)return '<span class="delta u">—</span>';
  var p=(cur-prev)/prev*100;if(!isFinite(p))return '';var up=p>=0;
  return '<span class="delta '+(up?'d':'u')+'">'+(up?'↑':'↓')+' '+Math.abs(p).toFixed(2)+'%</span>'}
@@ -977,7 +978,7 @@ function drawTable(id){var t=tables[id],wrap=I(id+'Wrap');if(!wrap)return;
    h+='<tr class="cmp-delta"><td>'+((t.day||t.dateInline)?'环比':'')+'</td>';
    if(t.pre)t.pre.forEach(function(){h+='<td></td>'});
    if(!t.day&&!t.dateInline)h+='<td>环比</td>';
-   cols.forEach(function(c){var hl=!t.noHl&&t.mode!=='g'&&HL_CMP[c.k]&&cmpHL((o.d||{})[c.k],(cd||{})[c.k]);/* Google 全部明细表去除环比底色高亮（2026-11-06 定版：mode:'g' 或表级 noHl），环比箭头色保留 */
+   cols.forEach(function(c){var hl=!t.noHl&&t.mode!=='g'&&HL_CMP[c.k]&&cmpHL((o.d||{})[c.k],(cd||{})[c.k],HL_TH[c.k]);/* Google 全部明细表去除环比底色高亮（2026-11-06 定版：mode:'g' 或表级 noHl）；钱效率组 5%/流量效率组 10% 分档（2026-11-06 二次定版），环比箭头色保留 */
     h+='<td'+(hl?' class="hl-cmp"':'')+'>'+deltaHtml((o.d||{})[c.k],(cd||{})[c.k],c.k)+'</td>'});h+='</tr>'})});
  if(more)h+='<tr><td colspan="'+ncol+'" class="more-wrap"><button data-more="'+id+'">加载更多（共 '+rows.length+' 行，已显示 '+t.limit+'）</button></td></tr>';
  /* 总计行：全量行指标求和后重算比率列（同观远表格总计：sum 型求和、比率=Σ分子/Σ分母）；首列统一显示「总计」；noTotal 表除外（如 Google SPU 排行：SPU 表行级拆分致展示/点击重复计，合计无业务意义，观远亦无总计） */
